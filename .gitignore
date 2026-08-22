@@ -1,0 +1,33 @@
+# Secrets — never commit
+.mp_api_key.local
+*.local
+
+# Raw / intermediate data: large, regenerable from src/ pipeline scripts.
+# See README for how each stage is produced.
+/data/
+
+# Unrelated proposal drafts (separate project, not part of this paper)
+docs/proposals/
+
+# Large simulation trajectory dumps and binary checkpoints — regenerable
+# from the committed .lammps input scripts; not needed to review the paper.
+*.lammpstrj
+restart.*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Editor / agent local state
+.claude/
+
+# LaTeX build artifacts (main.pdf is committed deliberately, intermediates are not)
+paper/*.aux
+paper/*.log
+paper/*.bbl
+paper/*.blg
+paper/*.out
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.synctex.gz

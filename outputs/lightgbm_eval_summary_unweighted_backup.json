@@ -1,0 +1,18 @@
+{
+  "accuracy": 0.7283007783815538,
+  "balanced_accuracy": 0.4664857893654031,
+  "n_train": 27234,
+  "n_test": 6809,
+  "classes": [
+    "AFM",
+    "FM",
+    "FiM",
+    "NM"
+  ],
+  "class_balance": {
+    "FM": 22137,
+    "FiM": 6035,
+    "NM": 3730,
+    "AFM": 2141
+  }
+}

@@ -1,0 +1,244 @@
+LAMMPS (10 Dec 2025 - Development - patch_10Dec2025-120-ga51f9ba0e7)
+OMP_NUM_THREADS environment is not set. Defaulting to 1 thread.
+  using 1 OpenMP thread(s) per MPI task
+# mp-754090 (Li4Fe2TeWO12) validation system, EFFECTIVE nearest-neighbor parameterization,
+# DFT-derived J with PLACEHOLDER DMI. First-pass qualitative check only -- see below.
+#
+# Only the magnetic Fe sublattice is modeled (framework Li/Te/W/O sites carry no spin and
+# are dropped from the geometry entirely), same convention as in.pdfeir_effective.lammps.
+#
+# --- J derivation (real DFT, see outputs/dft_ordering_validation.csv, mp-754090) ---
+#   E_FM  = -125.85042289 eV (0_fm, MAGMOM Fe = +5,+5)
+#   E_AFM = -125.80218935 eV (1_afm, MAGMOM Fe = -5,+5)
+#   dE = E_AFM - E_FM = 0.04823354 eV per formula-unit cell (2 Fe atoms: Fe0, Fe1)
+#   Fe-Fe distances (computed from POSCAR + periodic images, see scratchpad): the AFM flip
+#   here inverts Fe0 only, so ONLY Fe0-Fe1 (opposite-sublattice) bonds change sign; Fe0-Fe0
+#   and Fe1-Fe1 (same-sublattice) bonds stay aligned in both FM and AFM. The nearest
+#   opposite-sublattice shell has z=4 neighbors, tightly clustered at 5.112-5.157 Angstrom
+#   (mean 5.132 A), well separated from the next shell (mixed same/opposite-sublattice,
+#   starting 5.411 A) -- clean single-shell cutoff.
+#   For H = -sum J'_ij (unit-vector si.sj), per-formula-unit energy bookkeeping gives
+#     dE_total = z * J'_eff  =>  J'_eff = dE / z = 0.04823354 / 4 = 0.012058 eV = 12.06 meV
+#   This treats the whole shell as one effective bond (mean-field-style single-J fit) --
+#   the same level of approximation as the "effective nearest-neighbor" pdfeir model, not a
+#   full multi-shell J(r) fit. FM being the DFT ground state (dE>0) is correctly reproduced
+#   by a positive J' (favors alignment).
+#
+#   mu_s = 4.15 mu_B, averaged from OUTCAR magnetization (Fe tot moment 4.158-4.162 in FM,
+#   4.134-4.140 in AFM).
+#
+# --- DMI: DFT-derived (paramrudra jobs 49186/49187, data/dft_staging_noncollinear/mp-754090/).
+#   Method: two constrained noncollinear+SOC static calcs, Fe0 fixed along +z, Fe1 constrained
+#   to +x (canted_plus) and -x (canted_minus) -- i.e. theta=+-90deg canting in the xz-plane.
+#   Constraint held cleanly (OUTCAR per-ion magnetization: Fe1 = 4.038/-4.039 ucB along x in
+#   the two jobs, Fe0 leakage off z < 0.002 ucB). Using E(theta) = E0 - z*J*cos(theta) -
+#   z*D*sin(theta) with z=4 (same coordination shell as the J fit) and free energy TOTEN
+#   (same convention as the J derivation, for consistency):
+#     F(canted_plus)  = -126.06989762 eV  (Fe1 -> +x)
+#     F(canted_minus) = -126.06835168 eV  (Fe1 -> -x)
+#     z*D = [F(canted_minus) - F(canted_plus)] / 2 = 0.77297 meV  =>  D = 0.19324 meV
+#   Since S1=z and the canting is in the xz-plane, S1 x S2 = (0, sin(theta), 0) -- this probe
+#   measures D_y specifically (the DMI vector's y-component in this lab frame), not a generic
+#   magnitude. D/J ~ 1.6%, notably smaller than the earlier placeholder guess (~25% of J).
+#   Caveat: mp-754090 has no symmetry (space group P1, see dmi_setup_notes.md) to fix which
+#   plane the *true* DMI vector lives in -- x was an arbitrary but fixed reference axis, so
+#   this D is a real DFT number for the probed plane, not a fully resolved 3D DMI vector.
+#   Anisotropy and any other DMI components remain unprobed.
+#
+# --- Anisotropy: unknown, set to 0 (no single-ion anisotropy term). Not guessed -- no DFT
+#   or literature basis for a value or easy-axis direction for this compound.
+#
+# Known LAMMPS build issues (same machine/build as pdfeir, see in.pdfeir_dynamics.lammps):
+#   hybrid/overlay segfaults with exactly 2 spin substyles; padded to 3 with a zero-strength
+#   spin/magelec substyle as a workaround, not a physics change.
+
+units           metal
+atom_style      spin
+dimension       3
+boundary        p p p
+atom_modify     map array
+
+# Real triclinic cell (Angstrom, from mp-754090 POSCAR), 2-atom Fe-only basis.
+#
+# NOTE: an earlier version of this file used `lattice custom` (non-orthogonal a1/a2/a3) +
+# `region prism ... 0 0 0 units lattice`, assuming zero tilt in lattice units would inherit
+# the custom lattice's own skew. Smoke test proved this WRONG (no crash, no NaN -- silently
+# wrong instead): LAMMPS built an orthogonal box (reported tilt "(0 0 0)" literally, i.e. no
+# skew applied) with a fabricated "lattice spacing" that matched none of a1/a2/a3, giving 136
+# atoms instead of the expected 24 for a 3x2x2 replication. Fixed by instead writing an
+# explicit triclinic data file (mp754090_fe.data, lower-triangular convention, tilt
+# hand-derived from a1/a2/a3 via a1hat/xy/ly/xz/yz -- volume-checked against
+# det(a1,a2,a3)=206.827 before trusting it) and using read_data + replicate, which handles
+# triclinic geometry correctly. Re-verified: this version gives exactly nx*ny*nz*2 atoms.
+read_data       mp754090_fe.data
+Reading data file ...
+  triclinic box = (0 0 0) to (5.4127568 9.0551788 4.2197964) with tilt (5.9784859 5.9762174 6.1438952)
+WARNING: Triclinic box skew is large. LAMMPS will run inefficiently. (src/domain.cpp:221)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  2 atoms
+  read_data CPU = 0.001 seconds
+variable        nx equal 16
+variable        ny equal 8
+variable        nz equal 8
+replicate       ${nx} ${ny} ${nz}
+replicate       16 ${ny} ${nz}
+replicate       16 8 ${nz}
+replicate       16 8 8
+Replication is creating a 16x8x8 = 1024 times larger system...
+  triclinic box = (0 0 0) to (86.604109 72.44143 33.758371) with tilt (47.827887 47.809739 49.151162)
+WARNING: Triclinic box skew is large. LAMMPS will run inefficiently. (src/domain.cpp:221)
+  1 by 1 by 1 MPI processor grid
+  2048 atoms
+  replicate CPU = 0.001 seconds
+
+set             group all spin/atom/random 31 4.15   # mu_s = 4.15 mu_B, random init (paramagnetic start)
+Setting atom values ...
+  2048 settings made for spin/atom/random
+
+# --- Exchange: J_eff = 12.058 meV = 0.012058 eV, Bethe-Slater fit, single-shell cutoff ---
+variable        j_eff_eV equal 0.012058385
+variable        d_shell equal 5.132075
+variable        exch_a equal v_j_eff_eV*2.718281828/4.0
+variable        rc_exch equal 5.25          # includes z=4 shell (5.112-5.157 A), excludes next (5.411 A)
+
+# --- DMI: DFT-derived, |D| = 0.19324 meV, direction y -- see note above ---
+variable        d_eV equal 0.00019324
+variable        rc_dmi equal 5.25
+
+pair_style      hybrid/overlay spin/exchange ${rc_exch} spin/dmi ${rc_dmi} spin/magelec ${rc_exch}
+pair_style      hybrid/overlay spin/exchange 5.25 spin/dmi ${rc_dmi} spin/magelec ${rc_exch}
+pair_style      hybrid/overlay spin/exchange 5.25 spin/dmi 5.25 spin/magelec ${rc_exch}
+pair_style      hybrid/overlay spin/exchange 5.25 spin/dmi 5.25 spin/magelec 5.25
+pair_coeff      * * spin/exchange exchange ${rc_exch} ${exch_a} 0.0 ${d_shell} offset yes
+pair_coeff      * * spin/exchange exchange 5.25 ${exch_a} 0.0 ${d_shell} offset yes
+pair_coeff      * * spin/exchange exchange 5.25 0.00819452220513194 0.0 ${d_shell} offset yes
+pair_coeff      * * spin/exchange exchange 5.25 0.00819452220513194 0.0 5.132075 offset yes
+pair_coeff      * * spin/dmi dmi ${rc_dmi} ${d_eV} 0.0 1.0 0.0
+pair_coeff      * * spin/dmi dmi 5.25 ${d_eV} 0.0 1.0 0.0
+pair_coeff      * * spin/dmi dmi 5.25 0.00019324 0.0 1.0 0.0
+pair_coeff      * * spin/magelec magelec ${rc_exch} 0.0 1.0 1.0 1.0   # zero strength: segfault workaround only
+pair_coeff      * * spin/magelec magelec 5.25 0.0 1.0 1.0 1.0   
+
+neighbor        0.3 bin
+neigh_modify    every 10 check yes delay 20
+
+fix             1 all precession/spin zeeman 0.0 0.0 0.0 1.0
+fix_modify      1 energy yes
+fix             2 all langevin/spin 0.0 0.05 21      # damping placeholder, matches pdfeir convention
+fix             3 all nve/spin lattice frozen         # rigid lattice, spin-only dynamics
+
+timestep        0.0001
+
+compute         outsp all property/atom spx spy spz sp
+dump            1 all custom 500 dump_mp754090_T0.lammpstrj type x y z c_outsp[1] c_outsp[2] c_outsp[3]
+
+thermo_style    custom step pe etotal
+thermo          200
+
+min_style       spin/lbfgs
+minimize        1.0e-10 1.0e-12 5000 10000
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Your simulation uses code contributions which should be cited:
+
+- fix nve/spin command: https://doi.org/10.1016/j.jcp.2018.06.042
+
+@article{tranchida2018massively,
+title={Massively Parallel Symplectic Algorithm for Coupled Magnetic Spin    Dynamics and Molecular Dynamics},
+author={Tranchida, J and Plimpton, S J and Thibaudeau, P and Thompson, A P},
+journal={Journal of Computational Physics},
+volume={372},
+pages={406--425},
+year={2018},
+publisher={Elsevier}
+doi={10.1016/j.jcp.2018.06.042}
+}
+
+- min_style spin/lbfgs command: https://doi.org/10.48550/arXiv.1904.02669
+
+@article{ivanov2019fast,
+title={Fast and Robust Algorithm for the Minimisation of the Energy of
+    Spin Systems},
+author={Ivanov, A. V and Uzdin, V. M. and J{'o}nsson, H.},
+journal={arXiv preprint arXiv:1904.02669},
+year={2019}
+}
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Switching to 'neigh_modify every 1 delay 0 check yes' setting during minimization
+WARNING: Line search incompatible with gneb (src/SPIN/min_spin_lbfgs.cpp:107)
+Generated 0 of 0 mixed pair_coeff terms from geometric mixing rule
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.55
+  ghost atom cutoff = 5.55
+  binsize = 2.775, bins = 66 44 13
+  3 neighbor lists, perpetual/occasional/extra = 3 0 0
+  (1) pair spin/exchange, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+  (2) pair spin/dmi, perpetual, copy from (1)
+      attributes: full, newton on
+      pair build: copy
+      stencil: none
+      bin: none
+  (3) pair spin/magelec, perpetual, copy from (1)
+      attributes: full, newton on
+      pair build: copy
+      stencil: none
+      bin: none
+WARNING: Dump 1 includes no atom IDs and is not sorted by ID. This may complicate post-processing tasks or visualization (src/dump.cpp:220)
+Per MPI rank memory allocation (min/avg/max) = 5.919 | 5.919 | 5.919 Mbytes
+   Step         PotEng         TotEng    
+         0   74.600867      74.600867    
+       200  -3.3799042e-08 -3.3799042e-08
+       400  -4.2520459e-08 -4.2520459e-08
+       511  -4.2520525e-08 -4.2520525e-08
+Loop time of 1.32272 on 1 procs for 511 steps with 2048 atoms
+
+100.0% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+Minimization stats:
+  Stopping criterion = energy tolerance
+  Energy initial, next-to-last, final = 
+      74.6008666913684 -4.25205259248797e-08 -4.252052450716e-08
+  Force two-norm initial, final = 0 0
+  Force max component initial, final = 0 0
+  Final line search alpha, max atom move = 0 0
+  Iterations, force evaluations = 511 511
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 1.1203     | 1.1203     | 1.1203     |   0.0 | 84.70
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 0.028934   | 0.028934   | 0.028934   |   0.0 |  2.19
+Output  | 0.0044916  | 0.0044916  | 0.0044916  |   0.0 |  0.34
+Modify  | 0.014471   | 0.014471   | 0.014471   |   0.0 |  1.09
+Other   |            | 0.1545     |            |       | 11.68
+
+Nlocal:           2048 ave        2048 max        2048 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           1732 ave        1732 max        1732 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:        24576 ave       24576 max       24576 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 24576
+Ave neighs/atom = 12
+Neighbor list builds = 0
+Dangerous builds = 0
+
+write_restart   restart.mp754090_T0.equil
+System init for write_restart ...
+Generated 0 of 0 mixed pair_coeff terms from geometric mixing rule
+WARNING: Dump 1 includes no atom IDs and is not sorted by ID. This may complicate post-processing tasks or visualization (src/dump.cpp:220)
+Total wall time: 0:00:01

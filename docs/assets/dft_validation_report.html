@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>DFT Validation of Ground-Truth Magnetic Ordering Labels</title>
+<style>
+  @page {
+    size: A4;
+    margin: 2.2cm 2cm 2.2cm 2cm;
+    @bottom-center {
+      content: counter(page) " / " counter(pages);
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 9pt;
+      color: #9a9990;
+    }
+  }
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    color: #0b0b0b;
+    font-size: 10.5pt;
+    line-height: 1.5;
+  }
+  h1 {
+    font-size: 19pt;
+    margin-bottom: 0.15em;
+  }
+  .subtitle {
+    font-style: italic;
+    color: #52514e;
+    font-size: 10.5pt;
+    margin-bottom: 0.1em;
+  }
+  .meta {
+    color: #9a9990;
+    font-size: 9.5pt;
+    margin-bottom: 1.4em;
+  }
+  h2 {
+    font-size: 13pt;
+    border-bottom: 1px solid #d8d7cf;
+    padding-bottom: 0.25em;
+    margin-top: 1.6em;
+    margin-bottom: 0.6em;
+  }
+  h3 {
+    font-size: 11.5pt;
+    color: #2a2a28;
+    margin-top: 1.2em;
+    margin-bottom: 0.4em;
+  }
+  p { margin: 0.55em 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.8em 0 1em 0;
+    font-size: 9.7pt;
+  }
+  th {
+    background: #f1f0ea;
+    text-align: left;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    font-weight: bold;
+  }
+  td {
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    vertical-align: top;
+  }
+  tr.headline td { font-weight: bold; }
+  .clear { color: #b02e2e; font-weight: bold; }
+  .noise { color: #8a8878; }
+  .callout {
+    background: #f6f5f0;
+    border-left: 3px solid #b02e2e;
+    padding: 0.7em 1em;
+    margin: 1em 0;
+    font-size: 10pt;
+  }
+  .callout.good { border-left-color: #0ca30c; }
+  .callout .label { font-weight: bold; display: block; margin-bottom: 0.2em; }
+  code {
+    font-family: 'Courier New', monospace;
+    background: #f1f0ea;
+    padding: 0.05em 0.3em;
+    font-size: 9.3pt;
+  }
+  ol, ul { margin: 0.5em 0; padding-left: 1.4em; }
+  li { margin: 0.3em 0; }
+  .chart {
+    text-align: center;
+    margin: 1.2em 0;
+  }
+  .chart img {
+    width: 92%;
+  }
+  .page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<h1>DFT Validation of Ground-Truth Magnetic Ordering Labels</h1>
+<div class="subtitle">24-candidate real-DFT check against Materials Project's stored magnetic ordering</div>
+<div class="meta">Prepared for advisor review &middot; 21 August 2026 &middot; snapshot, 2 of 26 still running</div>
+
+<div class="callout">
+  <span class="label">Headline result</span>
+  Of 24 shortlisted candidates checked so far against real VASP DFT (26 eligible, 2 still running),
+  <strong>4 are confirmed</strong> with a resolvable margin, <strong>17 are clearly overturned</strong>
+  to AFM (0.31&ndash;24.68 meV/atom more stable than FM), and <strong>3 are statistical ties</strong>
+  (&le;0.10 meV/atom, inside VASP's own convergence tolerance).
+</div>
+
+<h2>1. Purpose</h2>
+<p>
+This project's screening pipeline treats Materials Project's stored magnetic ordering as ground
+truth (<code>confidence=1.0</code>) wherever it is the source database. A first real-DFT check on
+one shortlisted candidate (mp-861559, TaFeO4) found that label overturned &mdash; MP's own workflow
+relaxes each structure from a single initial magnetic-moment guess and never enumerates AFM
+alternatives, so its "ground truth" reflects whatever configuration that guess happened to
+converge to. A follow-up 6-candidate batch confirmed this wasn't a one-off (0 of 6 confirmed).
+This report extends the check to the full set of eligible <code>ground_truth</code>/<code>FiM</code>
+candidates in the shortlist &mdash; 24 of 26 complete so far.
+</p>
+
+<h2>2. Method</h2>
+<p>
+Identical pipeline for every candidate, matching Materials Project's own magnetic-ordering
+convention so results are directly comparable to MP's stored values:
+</p>
+<ol>
+  <li>Take the candidate's relaxed structure from the harmonized dataset.</li>
+  <li>Enumerate symmetry-distinct FM/AFM spin configurations with pymatgen's
+      <code>MagneticStructureEnumerator</code> (backed by <code>enumlib</code>). The enumerator only
+      ever produces FM/AFM configurations &mdash; never FiM, even for the 2 candidates here labeled
+      <code>FiM</code> (mp-22972, mp-551086). For those two, the result only rules out FM; it does
+      not confirm or refute the FiM label itself.</li>
+  <li>Generate VASP inputs with <code>MPRelaxSet</code> &mdash; MP's own GGA+U, ENCUT, and
+      k-point density &mdash; overriding only <code>MAGMOM</code> per ordering.</li>
+  <li>Run each configuration to convergence (48 cores/job). The original 6 candidates ran on
+      <code>paramsanganak</code> (VASP 5.4.4); all later candidates ran on <code>paramrudra</code>
+      (VASP 6.4.3) after <code>paramsanganak</code> became unavailable mid-project.</li>
+  <li>Compare converged total energies <strong>per atom</strong> (not raw <code>TOTEN</code>); the
+      lowest is the DFT ground state.</li>
+</ol>
+<p>
+All configurations for the 24 complete candidates converged cleanly &mdash; every
+<code>OUTCAR</code> reports "reached required accuracy." 2 candidates are still running:
+mp-1173143 (1 of 4 configs converged) and mp-682554 (1 of 4 configs converged, a sulfide with no
+LDA+U applied &mdash; a distinct, unrelated failure mode, not part of the tungsten issue below).
+</p>
+
+<div class="callout good">
+  <span class="label">Data-integrity note</span>
+  Two bugs in the analysis script were found and fixed while processing this expanded batch: (1) a
+  ground-state comparison that used raw <code>TOTEN</code> instead of energy per atom &mdash; since
+  AFM configurations are enumerated in supercells 2&ndash;4&times; the FM primitive cell, this
+  systematically favored whichever configuration had more atoms, independent of actual stability;
+  (2) non-converged, TIME-LIMIT-truncated energies were briefly included in ground-state
+  comparisons. Both are fixed. The original 6-candidate numbers below are unaffected &mdash; verified
+  unchanged after the fix &mdash; but the bug would have silently corrupted several of the newly
+  completed candidates had it not been caught.
+</div>
+
+<div class="callout">
+  <span class="label">Hubbard U on tungsten removed for 5 candidates (methodological deviation)</span>
+  All 5 W-bearing candidates (mp-754090, mp-755203, mp-769471, mp-775194, mp-850225) initially
+  failed to converge under MP's standard GGA+U value (<code>U=6.2</code> eV on W). Root cause: W in
+  these compounds is formally W6+, i.e. nominally d0 &mdash; a large U on a near-empty d-shell makes
+  the +U energy almost invariant to how that near-zero occupancy distributes across W's five d
+  orbitals and across inequivalent W sites, so the SCF charge density has no restoring force and
+  oscillates indefinitely rather than converging. Confirmed with 11 independent sandbox tests
+  (three SCF algorithms, two mixing schemes, an <code>LMAXMIX</code> control, and a warm start from
+  a converged no-U density) &mdash; none converge with <code>U=6.2</code> kept on W. The only working
+  fix is removing U from W entirely (<code>LDAUL=-1</code> on the W species), applied uniformly
+  across all orderings of a given compound so the FM/AFM energy comparison stays valid. This
+  reproduced to within 0.5 meV/atom across two independent mixers in the sandbox, and converged all
+  18 production orderings cleanly on the first attempt (checked against false convergence via
+  <code>rms(c)</code>, not just the "EDIFF is reached" banner). <strong>Consequence:</strong> the
+  reported energies for these 5 candidates are not on the same U-value footing as MP's own database
+  values or the other 19 candidates in this report, so cross-candidate energy comparisons involving
+  these 5 should be treated with that caveat in mind; the within-compound FM-vs-AFM verdict for each
+  is unaffected, since the same U treatment applies to every ordering of a given compound.
+</div>
+
+<h2 class="page-break">3. Results</h2>
+<p>24 candidates complete, sorted by margin between the DFT ground state and the best alternative
+ordering. A margin below ~0.15 meV/atom is inside typical VASP electronic-convergence tolerance
+(<code>EDIFF=1e-6</code> eV here) and is read as a statistical tie. The 5 rows marked &dagger; are
+the tungsten candidates fixed this snapshot (<code>U</code> removed from W &mdash; see the
+data-integrity note above).</p>
+<table>
+  <tr>
+    <th>Candidate</th>
+    <th>Formula</th>
+    <th>Label</th>
+    <th>DFT ground state</th>
+    <th>Margin (meV/atom)</th>
+    <th>Signal</th>
+  </tr>
+  <tr class="headline"><td>mp-1228376</td><td>Ba3Fe2WO9</td><td>FM</td><td>AFM</td><td>24.68</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr class="headline"><td>mp-1218521</td><td>Sr3TaFeO7</td><td>FM</td><td>AFM</td><td>14.03</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-1519427</td><td>BaCaFeBiO6</td><td>FM</td><td>AFM</td><td>11.74</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-1520073</td><td>SrCaFeBiO6</td><td>FM</td><td>AFM</td><td>11.71</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-1522159</td><td>BaSrFeBiO6</td><td>FM</td><td>AFM</td><td>11.66</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-1217456</td><td>Ti4FeBiPb4O15</td><td>FM</td><td>AFM</td><td>9.18</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-1217946</td><td>TaFeO4 (entry 2)</td><td>FM</td><td>AFM</td><td>8.92</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-861559</td><td>TaFeO4 (entry 1)</td><td>FM</td><td>AFM</td><td>7.61</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-22972</td><td>Tb6FeBi2</td><td>FiM</td><td>AFM</td><td>7.32</td><td class="clear">clear vs FM, doesn't test FiM</td></tr>
+  <tr><td>mp-775194 &dagger;</td><td>Li2Fe3WO8</td><td>FM</td><td>AFM</td><td>6.59</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-1301722</td><td>Ca3Fe2(WO6)2</td><td>FM</td><td>AFM</td><td>2.73</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr class="headline"><td>mp-754090 &dagger;</td><td>Li4Fe2TeWO12</td><td>FM</td><td>FM</td><td>2.41</td><td class="good">clear &mdash; confirmed</td></tr>
+  <tr class="headline"><td>mp-1079285</td><td>Tb6FeBi2 (entry 2)</td><td>FM</td><td>FM</td><td>2.32</td><td class="good">clear &mdash; confirmed</td></tr>
+  <tr><td>mp-769471 &dagger;</td><td>Fe3Co2P6WO24</td><td>FM</td><td>AFM</td><td>2.17</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr class="headline"><td>mp-850225 &dagger;</td><td>FeP6(WO8)3</td><td>FM</td><td>FM</td><td>2.10</td><td class="good">clear &mdash; confirmed</td></tr>
+  <tr><td>mp-1343817</td><td>CaFeReO6</td><td>FM</td><td>AFM</td><td>1.77</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-1197024</td><td>FeBi(SeO3)3</td><td>FM</td><td>AFM</td><td>1.19</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr class="headline"><td>mp-1228547</td><td>Ba4Ta10FeO30</td><td>FM</td><td>FM</td><td>1.18</td><td class="good">clear &mdash; confirmed</td></tr>
+  <tr><td>mp-755203 &dagger;</td><td>Li4NbFe(WO6)2</td><td>FM</td><td>AFM</td><td>0.73</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-551086</td><td>CrFe(BiO3)2</td><td>FiM</td><td>AFM</td><td>0.57</td><td class="clear">clear vs FM, doesn't test FiM</td></tr>
+  <tr><td>mp-1173139</td><td>Ta2FeO6</td><td>FM</td><td>AFM</td><td>0.31</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-1047414</td><td>Zn2FeWO6</td><td>FM</td><td>AFM</td><td>0.10</td><td class="noise">noise-level</td></tr>
+  <tr><td>mp-1043970</td><td>CaLaTaFeO6</td><td>FM</td><td>AFM</td><td>0.09</td><td class="noise">noise-level</td></tr>
+  <tr><td>mp-1216981</td><td>TiFeBiPbO6</td><td>FM</td><td>FM</td><td>0.02</td><td class="noise">noise-level</td></tr>
+</table>
+
+<div class="chart">
+  <img src="dft_validation_chart.png">
+</div>
+
+<div class="callout">
+  <span class="label">Breakdown of the 24</span>
+  <strong>17 clearly overturned</strong> to AFM (0.31&ndash;24.68 meV/atom); <strong>4 clearly
+  confirmed</strong> as FM (mp-1079285, mp-1228547, mp-754090 &dagger;, mp-850225 &dagger;;
+  1.18&ndash;2.41 meV/atom); <strong>3 noise-level ties</strong> (&le;0.10 meV/atom: mp-1047414,
+  mp-1043970, mp-1216981) that cannot be called either way. Among the 21 that resolve clearly,
+  "AFM overturns FM" outnumbers "FM confirmed" 17 to 4.
+</div>
+
+<h2 class="page-break">4. Conclusion</h2>
+<p>
+Extending from the original 6-candidate check (0 of 6 confirmed) to the full 24-candidate batch
+changes the picture only modestly: <strong>4 of 24 are now confirmed</strong> with a real margin
+(all in the newer paramrudra batch), but <strong>17 of 24 remain clearly overturned</strong>,
+reinforcing rather than undercutting the original finding. The mislabeling is not universal &mdash;
+a small minority of <code>ground_truth</code> FM labels do hold up under real DFT &mdash; but the
+majority in this shortlisted population do not. This is consistent with MP's known workflow gap:
+relaxation from one initial magnetic-moment guess, with no systematic AFM enumeration, means MP's
+stored ordering reflects whichever configuration that one guess happened to converge to, which is
+right often enough to not be pure noise, but wrong on a majority of structures in this
+DMI-filtered population.
+</p>
+<p>
+<strong>On the FiM-labeled candidates:</strong> mp-22972 and mp-551086 are labeled <code>FiM</code>,
+not <code>FM</code>, but the enumerator used here never generates FiM configurations. AFM beating
+the FM baseline for these two does not confirm or refute their actual FiM label &mdash; it only
+rules out FM.
+</p>
+
+<h3>Caveat on sample composition</h3>
+<p>
+This is still not a random sample &mdash; all candidates were pulled from the top of the
+DMI-filtered shortlist (noncentrosymmetric, heavy-SOC-element, net-moment structures). It is
+plausible that this structural family is more AFM-prone than the <code>ground_truth</code>
+population as a whole. What this sample does establish firmly: the label cannot be taken at face
+value for candidates in this specific shortlisted population without an actual DFT check.
+</p>
+
+<h2>5. Recommendation for discussion</h2>
+<ol>
+  <li><strong>Headline</strong> (24-candidate snapshot, 2 remaining): of 24 shortlisted
+      <code>ground_truth</code>/<code>FiM</code> labels checked against real DFT, 17 are clearly
+      wrong, 4 are confirmed with a resolvable margin, and 3 are statistical ties. The confirmation
+      rate with a real margin is roughly 1 in 6.</li>
+  <li><strong>Implication</strong>: the classifier's/MP's ordering label should be treated as a
+      screening prior, not ground truth, for this shortlist's structural family. Worth deciding
+      whether to re-flag affected shortlist entries or revisit how <code>ordering_final</code>
+      feeds the net-moment filter in <code>screen_candidates.py</code> (AFM is currently excluded
+      from the DMI funnel entirely).</li>
+  <li><strong>Open question</strong>: is 24&ndash;26 of 1,647 candidates enough evidence to act on,
+      or does this need a larger, more representative validation batch &mdash; e.g. a random sample
+      stratified across the whole <code>ground_truth</code> population, not just the DMI-filtered
+      top of the shortlist &mdash; before changing how the pipeline treats these labels?</li>
+  <li><strong>Follow-up worth scoping</strong>: a dedicated FiM-configuration check for mp-22972 and
+      mp-551086, since FM/AFM enumeration structurally cannot confirm or refute an FiM label.</li>
+</ol>
+
+<h2>Raw data</h2>
+<ul>
+  <li>Per-configuration results: <code>outputs/dft_ordering_validation.csv</code> (all candidates
+      with any converged data; <code>candidate_complete</code> marks which of the 24 are final)</li>
+  <li>Staged calculations: <code>data/dft_staging/&lt;candidate_id&gt;/{0_fm,1_afm,...}/</code>
+      (paramrudra runs write directly into the calc dir; paramsanganak runs nest under a
+      <code>results/</code> subdirectory)</li>
+  <li>Full writeup: <code>docs/dft_validation_ground_truth_labels.md</code></li>
+  <li>Candidate labels: <code>outputs/phase4_shortlist.csv</code></li>
+</ul>
+
+</body>
+</html>

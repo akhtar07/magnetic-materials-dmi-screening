@@ -1,0 +1,23 @@
+# Foundation-MLIP fine-tuning (Phase 3), MatterSim variant.
+# See environment-mlip-mace.yml for why this is a separate env (e3nn version conflict).
+#
+# Python 3.9 required: MatterSim's PyPI wheels are cp39-only.
+#
+# phonopy is pinned here as a conda-forge binary deliberately: mattersim pulls in phonopy as
+# a transitive pip dependency, and phonopy's sdist fails to build from source against newer
+# scikit-build-core ("Use build.verbose instead of cmake.verbose for scikit-build-core >= 0.10"
+# -- an upstream phonopy/scikit-build-core incompatibility, confirmed by an actual failed
+# build log, not guessed). Installing the prebuilt conda-forge binary first means pip sees
+# phonopy already satisfied and never tries to build it.
+#
+# Create with:
+#   mamba env create -f environment-mlip-mattersim.yml
+name: magnetic-mlip-mattersim
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pip
+  - phonopy
+  - pip:
+      - mattersim

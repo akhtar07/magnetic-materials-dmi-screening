@@ -1,0 +1,269 @@
+LAMMPS (10 Dec 2025 - Development - patch_10Dec2025-120-ga51f9ba0e7)
+OMP_NUM_THREADS environment is not set. Defaulting to 1 thread.
+  using 1 OpenMP thread(s) per MPI task
+# Finite-T Langevin spin-dynamics stage for the Pd/Fe/Ir(111) effective model (see
+# in.pdfeir_effective.lammps for the Hamiltonian, parameters, and their provenance).
+# Run via run_scan.sh, one temperature per invocation: -var runtemp <K> -var runseed <int>
+#
+# Segfault root cause and fix (found by bisection, 2026-08-16):
+#   `fix nve/spin` + a dynamics `run` was segfaulting on the real system on every LAMMPS
+#   build tried, including a from-source rebuild with the SPIN package freshly enabled
+#   (10 Dec 2025 dev snapshot). Bisected on a minimal reproducer down to: LAMMPS's
+#   `pair_style hybrid/overlay` segfaults during force computation whenever it wraps
+#   EXACTLY TWO SPIN-package pair substyles (confirmed for spin/exchange+spin/dmi and,
+#   independently, spin/exchange+spin/magelec) -- reproduces regardless of langevin/spin,
+#   fix declaration order, lattice geometry/boundary, or DMI direction, and is NOT specific
+#   to this system: examples/SPIN/bfo (which combines exchange+magelec+dmi, THREE
+#   substyles) ships with LAMMPS and runs fine on the exact same build. Adding a third,
+#   physically-inert (zero-strength) spin/magelec substyle to pad hybrid/overlay to three
+#   substyles avoids the crash entirely -- verified against this real system (600-atom
+#   scaled check, 500-step Langevin run, smooth non-NaN energy relaxation) before adopting
+#   it here. This is a LAMMPS bug (not a modeling error); the padding is a workaround,
+#   not a physics change (magelec coefficient is exactly 0).
+
+units           metal
+atom_style      spin
+dimension       3
+boundary        p p f
+atom_modify     map array
+
+read_restart    restart.pdfeir_T0.equil
+Reading restart file ...
+  restart file = 10 Dec 2025, LAMMPS = 10 Dec 2025
+  restoring atom style spin from restart
+  orthogonal box = (0 0 -1.3575) to (407.25 235.1259 1.3575)
+  1 by 1 by 1 MPI processor grid
+  restoring pair style hybrid/overlay from restart
+  15000 atoms
+  read_restart CPU = 0.003 seconds
+
+variable        rnn equal 2.715
+variable        j_eff_eV equal 0.00368
+variable        exch_a equal v_j_eff_eV*2.718281828/4.0
+variable        rc_exch equal 1.2*${rnn}
+variable        rc_exch equal 1.2*2.715
+variable        d_eV equal 0.00139
+variable        rc_dmi equal 1.2*${rnn}
+variable        rc_dmi equal 1.2*2.715
+variable        k_eV equal -0.0007
+
+# --- workaround: pad hybrid/overlay to 3 spin substyles, see note above ---
+pair_style      hybrid/overlay spin/exchange ${rc_exch} spin/dmi ${rc_dmi} spin/magelec ${rc_exch}
+pair_style      hybrid/overlay spin/exchange 3.258 spin/dmi ${rc_dmi} spin/magelec ${rc_exch}
+pair_style      hybrid/overlay spin/exchange 3.258 spin/dmi 3.258 spin/magelec ${rc_exch}
+pair_style      hybrid/overlay spin/exchange 3.258 spin/dmi 3.258 spin/magelec 3.258
+pair_coeff      * * spin/exchange exchange ${rc_exch} ${exch_a} 0.0 ${rnn} offset yes
+pair_coeff      * * spin/exchange exchange 3.258 ${exch_a} 0.0 ${rnn} offset yes
+pair_coeff      * * spin/exchange exchange 3.258 0.00250081928176 0.0 ${rnn} offset yes
+pair_coeff      * * spin/exchange exchange 3.258 0.00250081928176 0.0 2.715 offset yes
+pair_coeff      * * spin/dmi dmi ${rc_dmi} ${d_eV} 0.0 0.0 1.0
+pair_coeff      * * spin/dmi dmi 3.258 ${d_eV} 0.0 0.0 1.0
+pair_coeff      * * spin/dmi dmi 3.258 0.00139 0.0 0.0 1.0
+pair_coeff      * * spin/magelec magelec ${rc_exch} 0.0 1.0 1.0 1.0   # zero strength: workaround only
+pair_coeff      * * spin/magelec magelec 3.258 0.0 1.0 1.0 1.0   
+
+neighbor        0.3 bin
+neigh_modify    every 10 check yes delay 20
+
+fix             1 all precession/spin zeeman 0.0 0.0 0.0 1.0 anisotropy ${k_eV} 0.0 0.0 1.0
+fix             1 all precession/spin zeeman 0.0 0.0 0.0 1.0 anisotropy -0.0007 0.0 0.0 1.0
+fix_modify      1 energy yes
+fix             2 all langevin/spin ${runtemp} 0.05 ${runseed}
+fix             2 all langevin/spin 195 0.05 ${runseed}
+fix             2 all langevin/spin 195 0.05 21
+fix             3 all nve/spin lattice frozen
+
+timestep        0.0001
+
+compute         out_mag all spin
+compute         outsp all property/atom spx spy spz sp
+thermo_style    custom step time temp pe etotal c_out_mag[4] c_out_mag[5]
+thermo          200
+
+dump            1 all custom 500 dump_pdfeir_T${runtemp}_s${runseed}.lammpstrj type x y z c_outsp[1] c_outsp[2] c_outsp[3]
+dump            1 all custom 500 dump_pdfeir_T195_s${runseed}.lammpstrj type x y z c_outsp[1] c_outsp[2] c_outsp[3]
+dump            1 all custom 500 dump_pdfeir_T195_s21.lammpstrj type x y z c_outsp[1] c_outsp[2] c_outsp[3]
+
+# Equilibrate then production sample. 20k steps @ dt=0.0001 ps = 2 ps -- short first pass;
+# extend once the T_c ~214K checkpoint from the paper needs finer sampling.
+run             20000
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Your simulation uses code contributions which should be cited:
+
+- fix nve/spin command: https://doi.org/10.1016/j.jcp.2018.06.042
+
+@article{tranchida2018massively,
+title={Massively Parallel Symplectic Algorithm for Coupled Magnetic Spin    Dynamics and Molecular Dynamics},
+author={Tranchida, J and Plimpton, S J and Thibaudeau, P and Thompson, A P},
+journal={Journal of Computational Physics},
+volume={372},
+pages={406--425},
+year={2018},
+publisher={Elsevier}
+doi={10.1016/j.jcp.2018.06.042}
+}
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Generated 0 of 0 mixed pair_coeff terms from geometric mixing rule
+Neighbor list info ...
+  update: every = 10 steps, delay = 20 steps, check = yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 3.558
+  ghost atom cutoff = 3.558
+  binsize = 1.779, bins = 229 133 2
+  3 neighbor lists, perpetual/occasional/extra = 3 0 0
+  (1) pair spin/exchange, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+  (2) pair spin/dmi, perpetual, copy from (1)
+      attributes: full, newton on
+      pair build: copy
+      stencil: none
+      bin: none
+  (3) pair spin/magelec, perpetual, copy from (1)
+      attributes: full, newton on
+      pair build: copy
+      stencil: none
+      bin: none
+WARNING: Dump 1 includes no atom IDs and is not sorted by ID. This may complicate post-processing tasks or visualization (src/dump.cpp:220)
+Per MPI rank memory allocation (min/avg/max) = 6.591 | 6.591 | 6.591 Mbytes
+   Step          Time           Temp          PotEng         TotEng      c_out_mag[4]   c_out_mag[5] 
+      2522   0.2522         0             -1.0275171     -1.0275171      0.030922721   -1.0275171    
+      2600   0.26           0              5.5628414      5.5628414      0.030333027    5.5628414    
+      2800   0.28           0              20.589079      20.589079      0.031288581    20.589079    
+      3000   0.3            0              33.616306      33.616306      0.031221836    33.616306    
+      3200   0.32           0              44.390668      44.390668      0.029395182    44.390668    
+      3400   0.34           0              53.624009      53.624009      0.030231059    53.624009    
+      3600   0.36           0              61.821683      61.821683      0.030064857    61.821683    
+      3800   0.38           0              69.120225      69.120225      0.025852831    69.120225    
+      4000   0.4            0              76.165674      76.165674      0.024564336    76.165674    
+      4200   0.42           0              82.483235      82.483235      0.025237398    82.483235    
+      4400   0.44           0              87.911807      87.911807      0.02247522     87.911807    
+      4600   0.46           0              92.617723      92.617723      0.020720459    92.617723    
+      4800   0.48           0              97.337577      97.337577      0.021051627    97.337577    
+      5000   0.5            0              101.38202      101.38202      0.017390273    101.38202    
+      5200   0.52           0              105.06892      105.06892      0.016545041    105.06892    
+      5400   0.54           0              107.97901      107.97901      0.016198886    107.97901    
+      5600   0.56           0              111.41497      111.41497      0.015243458    111.41497    
+      5800   0.58           0              113.73307      113.73307      0.017342964    113.73307    
+      6000   0.6            0              116.42303      116.42303      0.016739532    116.42303    
+      6200   0.62           0              119.19771      119.19771      0.013971038    119.19771    
+      6400   0.64           0              121.61143      121.61143      0.01314991     121.61143    
+      6600   0.66           0              123.99035      123.99035      0.012280364    123.99035    
+      6800   0.68           0              126.09382      126.09382      0.01262314     126.09382    
+      7000   0.7            0              127.65811      127.65811      0.011628595    127.65811    
+      7200   0.72           0              129.80378      129.80378      0.012537397    129.80378    
+      7400   0.74           0              131.20402      131.20402      0.012729964    131.20402    
+      7600   0.76           0              132.593        132.593        0.01302112     132.593      
+      7800   0.78           0              133.75391      133.75391      0.012920134    133.75391    
+      8000   0.8            0              135.25261      135.25261      0.011404799    135.25261    
+      8200   0.82           0              136.00682      136.00682      0.0087535245   136.00682    
+      8400   0.84           0              136.92912      136.92912      0.010541125    136.92912    
+      8600   0.86           0              138.32322      138.32322      0.0094369656   138.32322    
+      8800   0.88           0              139.24801      139.24801      0.013026238    139.24801    
+      9000   0.9            0              140.09773      140.09773      0.014223386    140.09773    
+      9200   0.92           0              140.93496      140.93496      0.015587573    140.93496    
+      9400   0.94           0              141.47064      141.47064      0.016346955    141.47064    
+      9600   0.96           0              142.26266      142.26266      0.014922191    142.26266    
+      9800   0.98           0              143.11734      143.11734      0.01310905     143.11734    
+     10000   1              0              144.04428      144.04428      0.014117094    144.04428    
+     10200   1.02           0              144.45755      144.45755      0.014463606    144.45755    
+     10400   1.04           0              145.24017      145.24017      0.014792222    145.24017    
+     10600   1.06           0              145.87942      145.87942      0.015121897    145.87942    
+     10800   1.08           0              146.21869      146.21869      0.016245461    146.21869    
+     11000   1.1            0              147.08933      147.08933      0.014336685    147.08933    
+     11200   1.12           0              147.49784      147.49784      0.01543541     147.49784    
+     11400   1.14           0              147.95526      147.95526      0.012049898    147.95526    
+     11600   1.16           0              148.46514      148.46514      0.0095817224   148.46514    
+     11800   1.18           0              148.7198       148.7198       0.0077552171   148.7198     
+     12000   1.2            0              149.01319      149.01319      0.0076789398   149.01319    
+     12200   1.22           0              149.18271      149.18271      0.0073343168   149.18271    
+     12400   1.24           0              149.32965      149.32965      0.0067173246   149.32965    
+     12600   1.26           0              149.32055      149.32055      0.0055409347   149.32055    
+     12800   1.28           0              149.648        149.648        0.0040668056   149.648      
+     13000   1.3            0              149.79742      149.79742      0.0056186504   149.79742    
+     13200   1.32           0              150.45711      150.45711      0.0046933216   150.45711    
+     13400   1.34           0              150.43781      150.43781      0.0046558327   150.43781    
+     13600   1.36           0              150.49068      150.49068      0.0056971468   150.49068    
+     13800   1.38           0              150.77479      150.77479      0.0053461582   150.77479    
+     14000   1.4            0              151.29667      151.29667      0.0056758035   151.29667    
+     14200   1.42           0              151.16447      151.16447      0.0044724893   151.16447    
+     14400   1.44           0              151.67726      151.67726      0.0052273008   151.67726    
+     14600   1.46           0              151.24999      151.24999      0.0046002256   151.24999    
+     14800   1.48           0              151.57485      151.57485      0.0047643148   151.57485    
+     15000   1.5            0              152.04669      152.04669      0.0044398341   152.04669    
+     15200   1.52           0              152.15263      152.15263      0.00586581     152.15263    
+     15400   1.54           0              151.98957      151.98957      0.0069000357   151.98957    
+     15600   1.56           0              152.23446      152.23446      0.0065057238   152.23446    
+     15800   1.58           0              152.21981      152.21981      0.0094894385   152.21981    
+     16000   1.6            0              152.14218      152.14218      0.011249861    152.14218    
+     16200   1.62           0              152.17693      152.17693      0.0089004586   152.17693    
+     16400   1.64           0              152.41604      152.41604      0.0096522587   152.41604    
+     16600   1.66           0              152.36765      152.36765      0.0087027423   152.36765    
+     16800   1.68           0              152.38128      152.38128      0.010274242    152.38128    
+     17000   1.7            0              152.11629      152.11629      0.0087013328   152.11629    
+     17200   1.72           0              152.015        152.015        0.0076332796   152.015      
+     17400   1.74           0              152.37163      152.37163      0.008782171    152.37163    
+     17600   1.76           0              152.00607      152.00607      0.0093752556   152.00607    
+     17800   1.78           0              151.76507      151.76507      0.010914064    151.76507    
+     18000   1.8            0              151.94006      151.94006      0.008178225    151.94006    
+     18200   1.82           0              152.13599      152.13599      0.0056368771   152.13599    
+     18400   1.84           0              152.33111      152.33111      0.0045083513   152.33111    
+     18600   1.86           0              152.35842      152.35842      0.0039295267   152.35842    
+     18800   1.88           0              152.70822      152.70822      0.004788558    152.70822    
+     19000   1.9            0              152.94889      152.94889      0.0061688488   152.94889    
+     19200   1.92           0              152.94491      152.94491      0.0062867209   152.94491    
+     19400   1.94           0              153.07185      153.07185      0.0060554139   153.07185    
+     19600   1.96           0              153.07328      153.07328      0.0029522028   153.07328    
+     19800   1.98           0              153.32901      153.32901      0.0017298261   153.32901    
+     20000   2              0              153.07174      153.07174      0.0042307651   153.07174    
+     20200   2.02           0              152.44587      152.44587      0.0051671052   152.44587    
+     20400   2.04           0              152.62766      152.62766      0.0092983621   152.62766    
+     20600   2.06           0              153.20364      153.20364      0.011395645    153.20364    
+     20800   2.08           0              153.01972      153.01972      0.01061238     153.01972    
+     21000   2.1            0              153.22127      153.22127      0.0092411272   153.22127    
+     21200   2.12           0              153.3213       153.3213       0.0060678683   153.3213     
+     21400   2.14           0              153.44862      153.44862      0.0043453136   153.44862    
+     21600   2.16           0              153.02076      153.02076      0.0029856244   153.02076    
+     21800   2.18           0              153.17914      153.17914      0.0046800761   153.17914    
+     22000   2.2            0              153.23134      153.23134      0.0030645619   153.23134    
+     22200   2.22           0              153.40201      153.40201      0.0020718757   153.40201    
+     22400   2.24           0              153.21203      153.21203      0.0012491728   153.21203    
+     22522   2.2522         0              153.19983      153.19983      0.0037201045   153.19983    
+Loop time of 570.541 on 1 procs for 20000 steps with 15000 atoms
+
+Performance: 0.303 ns/day, 79.242 hours/ns, 35.054 timesteps/s, 525.817 katom-step/s
+100.0% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 146.13     | 146.13     | 146.13     |   0.0 | 25.61
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 0.50392    | 0.50392    | 0.50392    |   0.0 |  0.09
+Output  | 0.93124    | 0.93124    | 0.93124    |   0.0 |  0.16
+Modify  | 421.65     | 421.65     | 421.65     |   0.0 | 73.90
+Other   |            | 1.325      |            |       |  0.23
+
+Nlocal:          15000 ave       15000 max       15000 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:            707 ave         707 max         707 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:        90000 ave       90000 max       90000 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 90000
+Ave neighs/atom = 6
+Neighbor list builds = 0
+Dangerous builds = 0
+
+print           "DYNAMICS_T${runtemp}_DONE"
+DYNAMICS_T195_DONE
+Total wall time: 0:09:30

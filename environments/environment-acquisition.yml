@@ -1,0 +1,24 @@
+# Data acquisition + harmonization + bias classifier + LightGBM baseline.
+# Python 3.11 required: mp-api pulls in emmet-core, which uses typing.NotRequired (3.11+).
+# The original repo's 3.10 env (`pafi`) could not even import mp_api -- this is the fix.
+#
+# Create with:
+#   mamba env create -f environment-acquisition.yml
+name: magnetic-acq
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pandas
+  - numpy
+  - scikit-learn
+  - lightgbm
+  - pyyaml
+  - requests
+  - pymatgen
+  - ase
+  - pip:
+      - mp-api
+      - jarvis-tools
+      - qmpy-rester  # OQMD's maintained REST client, not the old qmpy package

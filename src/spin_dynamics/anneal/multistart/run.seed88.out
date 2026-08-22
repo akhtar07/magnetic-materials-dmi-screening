@@ -1,0 +1,96 @@
+No protocol specified
+No protocol specified
+LAMMPS (22 Jul 2025 - Update 4)
+OMP_NUM_THREADS environment is not set. Defaulting to 1 thread.
+  using 1 OpenMP thread(s) per MPI task
+Lattice spacing in x,y,z = 4.0725 2.351259 2.715
+Created orthogonal box = (0 0 -1.3575) to (407.25 235.1259 1.3575)
+  1 by 1 by 1 MPI processor grid
+Created 15000 atoms
+  using lattice units in orthogonal box = (0 0 -1.3575) to (407.25 235.1259 1.3575)
+  create_atoms CPU = 0.005 seconds
+Setting atom values ...
+  15000 settings made for spin/atom/random
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Your simulation uses code contributions which should be cited:
+- fix nve/spin command: doi:10.1016/j.jcp.2018.06.042
+- min_style spin/lbfgs command: doi:10.48550/arXiv.1904.02669
+The log file lists these citations in BibTeX format.
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Switching to 'neigh_modify every 1 delay 0 check yes' setting during minimization
+WARNING: Line search incompatible with gneb (src/SPIN/min_spin_lbfgs.cpp:107)
+Generated 0 of 0 mixed pair_coeff terms from geometric mixing rule
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 3.558
+  ghost atom cutoff = 3.558
+  binsize = 1.779, bins = 229 133 2
+  2 neighbor lists, perpetual/occasional/extra = 2 0 0
+  (1) pair spin/exchange, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+  (2) pair spin/dmi, perpetual, copy from (1)
+      attributes: full, newton on
+      pair build: copy
+      stencil: none
+      bin: none
+WARNING: Dump 1 includes no atom IDs and is not sorted by ID. This may complicate post-processing tasks or visualization (src/dump.cpp:220)
+Setting up spin/lbfgs style minimization ...
+  Unit style    : metal
+  Current step  : 0
+Per MPI rank memory allocation (min/avg/max) = 6.209 | 6.209 | 6.209 Mbytes
+   Step         PotEng         TotEng    
+         0   169.84853      169.84853    
+       200  -0.88115636    -0.88115636   
+       400  -0.97767752    -0.97767752   
+       600  -0.991691      -0.991691     
+       800  -0.99624079    -0.99624079   
+      1000  -0.99677182    -0.99677182   
+      1200  -0.99688603    -0.99688603   
+      1400  -0.99693467    -0.99693467   
+      1600  -0.99693681    -0.99693681   
+      1682  -0.99693692    -0.99693692   
+Loop time of 21.4275 on 1 procs for 1682 steps with 15000 atoms
+
+99.8% CPU use with 1 MPI tasks x 1 OpenMP threads
+
+Minimization stats:
+  Stopping criterion = energy tolerance
+  Energy initial, next-to-last, final = 
+      169.848527001375  -0.99693692404215 -0.996936924718227
+  Force two-norm initial, final = 0 0
+  Force max component initial, final = 0 0
+  Final line search alpha, max atom move = 0 0
+  Iterations, force evaluations = 1682 1682
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 17.225     | 17.225     | 17.225     |   0.0 | 80.39
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 0.060123   | 0.060123   | 0.060123   |   0.0 |  0.28
+Output  | 0.094863   | 0.094863   | 0.094863   |   0.0 |  0.44
+Modify  | 0.50402    | 0.50402    | 0.50402    |   0.0 |  2.35
+Other   |            | 3.544      |            |       | 16.54
+
+Nlocal:          15000 ave       15000 max       15000 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:            707 ave         707 max         707 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:        90000 ave       90000 max       90000 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 90000
+Ave neighs/atom = 6
+Neighbor list builds = 0
+Dangerous builds = 0
+Total wall time: 0:00:21

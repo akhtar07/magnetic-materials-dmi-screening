@@ -1,0 +1,112 @@
+# mp-754090 (Li4Fe2TeWO12) validation system, EFFECTIVE nearest-neighbor parameterization,
+# DFT-derived J with PLACEHOLDER DMI. First-pass qualitative check only -- see below.
+#
+# Only the magnetic Fe sublattice is modeled (framework Li/Te/W/O sites carry no spin and
+# are dropped from the geometry entirely), same convention as in.pdfeir_effective.lammps.
+#
+# --- J derivation (real DFT, see outputs/dft_ordering_validation.csv, mp-754090) ---
+#   E_FM  = -125.85042289 eV (0_fm, MAGMOM Fe = +5,+5)
+#   E_AFM = -125.80218935 eV (1_afm, MAGMOM Fe = -5,+5)
+#   dE = E_AFM - E_FM = 0.04823354 eV per formula-unit cell (2 Fe atoms: Fe0, Fe1)
+#   Fe-Fe distances (computed from POSCAR + periodic images, see scratchpad): the AFM flip
+#   here inverts Fe0 only, so ONLY Fe0-Fe1 (opposite-sublattice) bonds change sign; Fe0-Fe0
+#   and Fe1-Fe1 (same-sublattice) bonds stay aligned in both FM and AFM. The nearest
+#   opposite-sublattice shell has z=4 neighbors, tightly clustered at 5.112-5.157 Angstrom
+#   (mean 5.132 A), well separated from the next shell (mixed same/opposite-sublattice,
+#   starting 5.411 A) -- clean single-shell cutoff.
+#   For H = -sum J'_ij (unit-vector si.sj), per-formula-unit energy bookkeeping gives
+#     dE_total = z * J'_eff  =>  J'_eff = dE / z = 0.04823354 / 4 = 0.012058 eV = 12.06 meV
+#   This treats the whole shell as one effective bond (mean-field-style single-J fit) --
+#   the same level of approximation as the "effective nearest-neighbor" pdfeir model, not a
+#   full multi-shell J(r) fit. FM being the DFT ground state (dE>0) is correctly reproduced
+#   by a positive J' (favors alignment).
+#
+#   mu_s = 4.15 mu_B, averaged from OUTCAR magnetization (Fe tot moment 4.158-4.162 in FM,
+#   4.134-4.140 in AFM).
+#
+# --- DMI: DFT-derived (paramrudra jobs 49186/49187, data/dft_staging_noncollinear/mp-754090/).
+#   Method: two constrained noncollinear+SOC static calcs, Fe0 fixed along +z, Fe1 constrained
+#   to +x (canted_plus) and -x (canted_minus) -- i.e. theta=+-90deg canting in the xz-plane.
+#   Constraint held cleanly (OUTCAR per-ion magnetization: Fe1 = 4.038/-4.039 ucB along x in
+#   the two jobs, Fe0 leakage off z < 0.002 ucB). Using E(theta) = E0 - z*J*cos(theta) -
+#   z*D*sin(theta) with z=4 (same coordination shell as the J fit) and free energy TOTEN
+#   (same convention as the J derivation, for consistency):
+#     F(canted_plus)  = -126.06989762 eV  (Fe1 -> +x)
+#     F(canted_minus) = -126.06835168 eV  (Fe1 -> -x)
+#     z*D = [F(canted_minus) - F(canted_plus)] / 2 = 0.77297 meV  =>  D = 0.19324 meV
+#   Since S1=z and the canting is in the xz-plane, S1 x S2 = (0, sin(theta), 0) -- this probe
+#   measures D_y specifically (the DMI vector's y-component in this lab frame), not a generic
+#   magnitude. D/J ~ 1.6%, notably smaller than the earlier placeholder guess (~25% of J).
+#   Caveat: mp-754090 has no symmetry (space group P1, see dmi_setup_notes.md) to fix which
+#   plane the *true* DMI vector lives in -- x was an arbitrary but fixed reference axis, so
+#   this D is a real DFT number for the probed plane, not a fully resolved 3D DMI vector.
+#   Anisotropy and any other DMI components remain unprobed.
+#
+# --- Anisotropy: unknown, set to 0 (no single-ion anisotropy term). Not guessed -- no DFT
+#   or literature basis for a value or easy-axis direction for this compound.
+#
+# Known LAMMPS build issues (same machine/build as pdfeir, see in.pdfeir_dynamics.lammps):
+#   hybrid/overlay segfaults with exactly 2 spin substyles; padded to 3 with a zero-strength
+#   spin/magelec substyle as a workaround, not a physics change.
+
+units           metal
+atom_style      spin
+dimension       3
+boundary        p p p
+atom_modify     map array
+
+# Real triclinic cell (Angstrom, from mp-754090 POSCAR), 2-atom Fe-only basis.
+#
+# NOTE: an earlier version of this file used `lattice custom` (non-orthogonal a1/a2/a3) +
+# `region prism ... 0 0 0 units lattice`, assuming zero tilt in lattice units would inherit
+# the custom lattice's own skew. Smoke test proved this WRONG (no crash, no NaN -- silently
+# wrong instead): LAMMPS built an orthogonal box (reported tilt "(0 0 0)" literally, i.e. no
+# skew applied) with a fabricated "lattice spacing" that matched none of a1/a2/a3, giving 136
+# atoms instead of the expected 24 for a 3x2x2 replication. Fixed by instead writing an
+# explicit triclinic data file (mp754090_fe.data, lower-triangular convention, tilt
+# hand-derived from a1/a2/a3 via a1hat/xy/ly/xz/yz -- volume-checked against
+# det(a1,a2,a3)=206.827 before trusting it) and using read_data + replicate, which handles
+# triclinic geometry correctly. Re-verified: this version gives exactly nx*ny*nz*2 atoms.
+read_data       mp754090_fe.data
+variable        nx equal 16
+variable        ny equal 8
+variable        nz equal 8
+replicate       ${nx} ${ny} ${nz}
+
+set             group all spin/atom/random 31 4.15   # mu_s = 4.15 mu_B, random init (paramagnetic start)
+
+# --- Exchange: J_eff = 12.058 meV = 0.012058 eV, Bethe-Slater fit, single-shell cutoff ---
+variable        j_eff_eV equal 0.012058385
+variable        d_shell equal 5.132075
+variable        exch_a equal v_j_eff_eV*2.718281828/4.0
+variable        rc_exch equal 5.25          # includes z=4 shell (5.112-5.157 A), excludes next (5.411 A)
+
+# --- DMI: DFT-derived, |D| = 0.19324 meV, direction y -- see note above ---
+variable        d_eV equal 0.00019324
+variable        rc_dmi equal 5.25
+
+pair_style      hybrid/overlay spin/exchange ${rc_exch} spin/dmi ${rc_dmi} spin/magelec ${rc_exch}
+pair_coeff      * * spin/exchange exchange ${rc_exch} ${exch_a} 0.0 ${d_shell} offset yes
+pair_coeff      * * spin/dmi dmi ${rc_dmi} ${d_eV} 0.0 1.0 0.0
+pair_coeff      * * spin/magelec magelec ${rc_exch} 0.0 1.0 1.0 1.0   # zero strength: segfault workaround only
+
+neighbor        0.3 bin
+neigh_modify    every 10 check yes delay 20
+
+fix             1 all precession/spin zeeman 0.0 0.0 0.0 1.0
+fix_modify      1 energy yes
+fix             2 all langevin/spin 0.0 0.05 21      # damping placeholder, matches pdfeir convention
+fix             3 all nve/spin lattice frozen         # rigid lattice, spin-only dynamics
+
+timestep        0.0001
+
+compute         outsp all property/atom spx spy spz sp
+dump            1 all custom 500 dump_mp754090_T0.lammpstrj type x y z c_outsp[1] c_outsp[2] c_outsp[3]
+
+thermo_style    custom step pe etotal
+thermo          200
+
+min_style       spin/lbfgs
+minimize        1.0e-10 1.0e-12 5000 10000
+
+write_restart   restart.mp754090_T0.equil

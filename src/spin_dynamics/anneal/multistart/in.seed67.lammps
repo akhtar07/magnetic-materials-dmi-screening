@@ -1,0 +1,109 @@
+# Pd/Fe/Ir(111) validation system, EFFECTIVE nearest-neighbor parameterization.
+#
+# Reproduces (as a first checkpoint, not yet the full frustrated-exchange result) the
+# spin model of Boettcher, Heinze, Egorov, Sinova & Dupe, New J. Phys. 20, 103014 (2018)
+# https://doi.org/10.1088/1367-2630/aae282 (arXiv:1707.01708), Eq. (2) and Sec. 2.1,
+# using their "effective nearest-neighbor exchange" variant rather than the full
+# 9-shell J_DFT model. The paper explicitly needed parallel-tempering Monte Carlo (PTMC)
+# for the full frustrated model "to handle the occurrence of metastable states" -- plain
+# Langevin spin dynamics (what LAMMPS-SPIN does) is expected to hit the same metastability,
+# so validate against the simpler, non-frustrated effective model first. Full J_DFT model
+# is a stretch goal, see roadmap Phase 4b.
+#
+# Hamiltonian (paper Eq. 2): H = -sum J_ij (mi.mj) - sum D_ij.(mi x mj) + sum K (mi_z)^2 - sum mu_s B.mi
+#
+# Parameters used here (paper Sec 2.1, "effective nearest neighbor exchange parameter"):
+#   J_eff = 3.68 meV   (nearest-neighbor Heisenberg exchange)
+#   K     = -0.7 meV   (single-ion anisotropy, out-of-plane easy axis -- matches full model)
+#   D     = 1.39 meV   (nearest-neighbor DMI magnitude)
+#   mu_s  = 3 mu_B     (moment per Fe atom, both models)
+#
+# UNVERIFIED / needs checking before trusting results, do not treat as ground truth yet:
+#   - Fe-Fe nearest-neighbor distance: assumed pseudomorphic to Ir(111), r_NN = a_Ir/sqrt(2)
+#     with a_Ir = 3.839 Angstrom (standard bulk Ir fcc lattice constant) -> r_NN = 2.715 Angstrom.
+#     This is a geometric assumption, not read off the paper -- confirm against the paper's
+#     STM/DFT structural parameters if a discrepancy shows up in the reproduced T_c.
+#   - Sign of Dz (below): flips skyrmion <-> antiskyrmion chirality. The paper says their
+#     direction was fixed "in agreement with the model in ref [18]" (Dupe et al.) which I have
+#     not yet read. Both signs are physically valid to *try*; pick the one whose T=0, B=0
+#     ground state is a spin spiral propagating along Gamma-bar - K-bar with wavelength
+#     ~4.5 nm (paper Fig 1 caption) -- run both, compare against that, keep the matching sign.
+#   - pair_style spin/exchange takes a Bethe-Slater functional form, not a bare constant:
+#     f(r) = 4*a*(r/d)^2 * (1 - b*(r/d)^2) * exp(-(r/d)^2), pair_coeff order (Rc, a, b, d)
+#     -- confirmed against https://docs.lammps.org/pair_spin_exchange.html after an initial
+#     wrong guess at the parameter order produced NaN energies (caught by smoke-testing on a
+#     tiny 54-atom system before trusting this file, see below). Chosen here: b=0, d=r_NN, so
+#     f(r_NN) = 4*a/e, giving a = J_eff*e/4; cutoff Rc excludes the 2nd-NN shell (at
+#     r_NN*sqrt(3) = 4.70 Ang) so only the true 6 nearest neighbors of a triangular lattice
+#     contribute -- verified: a 54-atom smoke test gives exactly 6 neighs/atom with this Rc.
+#
+# Target checkpoints from the paper to compare against once this runs:
+#   T=0K, B=0T ground state: spin spiral, wavelength ~4.5 nm, propagating along Gamma-bar-K-bar
+#   T_c (heat-capacity peak) ~ 214 K (full model, roughly field-independent 0-3T per Fig 2b)
+#   Critical fields at T=0 (full model, may differ for effective model): B_s1=1.6T (spiral->SkX),
+#   B_s2=2.6T (SkX->FM)
+
+units           metal
+atom_style      spin
+dimension       3
+boundary        p p f
+atom_modify     map array
+
+# Triangular Fe monolayer, pseudomorphic to Ir(111) -- see r_NN note above.
+# LAMMPS's built-in "hex" lattice style is 2D-only; use "custom" to embed a triangular
+# net in a 3D box (dimension 3, boundary p p f) the way the SPIN/bfo example does for
+# its single-layer system.
+variable        rnn equal 2.715
+lattice         custom ${rnn} a1 1.0 0.0 0.0 a2 0.5 0.8660254 0.0 a3 0.0 0.0 1.0 &
+                basis 0.0 0.0 0.0
+region          box block 0.0 100.0 0.0 100.0 -0.5 0.5
+create_box      1 box
+create_atoms    1 box
+
+mass            1 55.845
+set             group all spin/atom/random 67 3.0   # mu_s = 3 mu_B, random init (paramagnetic start)
+
+# --- Exchange: J_eff = 3.68 meV = 0.00368 eV, fit to Bethe-Slater form, NN-only by cutoff ---
+# pair_coeff order is (Rc, a, b, d) -- see note above. b=0, d=r_NN, a solved so f(r_NN)=J_eff.
+variable        j_eff_eV equal 0.00368
+variable        exch_a equal v_j_eff_eV*2.718281828/4.0
+variable        rc_exch equal 1.2*${rnn}         # excludes 2nd-NN shell at rnn*sqrt(3)=4.70 A
+
+# --- DMI: |D| = 1.39 meV = 0.00139 eV, direction along z (see chirality note above) ---
+variable        d_eV equal 0.00139
+variable        rc_dmi equal 1.2*${rnn}
+
+# --- Anisotropy: K = -0.7 meV = -0.0007 eV, out-of-plane easy axis ---
+variable        k_eV equal -0.0007
+
+pair_style      hybrid/overlay spin/exchange ${rc_exch} spin/dmi ${rc_dmi}
+pair_coeff      * * spin/exchange exchange ${rc_exch} ${exch_a} 0.0 ${rnn} offset yes
+pair_coeff      * * spin/dmi dmi ${rc_dmi} ${d_eV} 0.0 0.0 1.0   # TRY 0.0 0.0 -1.0 if chirality is wrong
+
+neighbor        0.3 bin
+neigh_modify    every 10 check yes delay 20
+
+fix             1 all precession/spin zeeman 0.0 0.0 0.0 1.0 anisotropy ${k_eV} 0.0 0.0 1.0
+fix_modify      1 energy yes
+fix             2 all langevin/spin 0.0 0.05 21      # damping placeholder, not from the paper -- tune
+fix             3 all nve/spin lattice frozen         # rigid lattice, spin-only dynamics
+
+timestep        0.0001
+
+compute         outsp all property/atom spx spy spz sp
+dump            1 all custom 500 dump_pdfeir_seed67.lammpstrj type x y z c_outsp[1] c_outsp[2] c_outsp[3]
+
+# NOTE: "compute spin" (magnetization norm/energy, i.e. c_out_mag[4]/[5] in the SPIN examples)
+# must NOT be referenced in thermo_style during a `minimize` with min_style spin/lbfgs --
+# confirmed by smoke-testing: doing so segfaults this LAMMPS build (22 Jul 2025) because that
+# compute's output isn't populated outside of dynamics `run` steps. Keep minimize's thermo
+# plain; add `compute out_mag all spin` + the fuller thermo_style back in for the finite-T
+# `run` stage in run_scan.sh (dynamics, not minimize), where it works fine.
+thermo_style    custom step pe etotal
+thermo          200
+
+# T=0, B=0 relaxation only -- confirms ground state (spin spiral, lambda~4.5nm) before
+# attempting any finite-T run. Field sweep (fix 1 zeeman B 0 0 <value>) and finite-T
+# (fix 2 langevin/spin <T> ...) come after this checkpoint passes, see run_scan.sh.
+min_style       spin/lbfgs
+minimize        1.0e-10 1.0e-12 5000 10000

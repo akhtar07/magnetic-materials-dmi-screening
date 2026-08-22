@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Machine Learning-Guided Screening of Magnetic Materials — Full Project Report</title>
+<style>
+  @page {
+    size: A4;
+    margin: 2.2cm 2cm 2.2cm 2cm;
+    @bottom-center {
+      content: counter(page) " / " counter(pages);
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 9pt;
+      color: #9a9990;
+    }
+  }
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    color: #0b0b0b;
+    font-size: 10.5pt;
+    line-height: 1.5;
+  }
+  h1 {
+    font-size: 20pt;
+    margin-bottom: 0.15em;
+    line-height: 1.25;
+  }
+  .subtitle {
+    font-style: italic;
+    color: #52514e;
+    font-size: 10.5pt;
+    margin-bottom: 0.1em;
+  }
+  .meta {
+    color: #9a9990;
+    font-size: 9.5pt;
+    margin-bottom: 1.4em;
+  }
+  h2 {
+    font-size: 14.5pt;
+    border-bottom: 2px solid #0b0b0b;
+    padding-bottom: 0.25em;
+    margin-top: 0;
+    margin-bottom: 0.7em;
+  }
+  h3 {
+    font-size: 11.5pt;
+    color: #2a2a28;
+    margin-top: 1.3em;
+    margin-bottom: 0.4em;
+  }
+  h4 {
+    font-size: 10.5pt;
+    color: #2a2a28;
+    margin-top: 1em;
+    margin-bottom: 0.3em;
+    font-style: italic;
+  }
+  p { margin: 0.55em 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.8em 0 1em 0;
+    font-size: 9.5pt;
+  }
+  th {
+    background: #f1f0ea;
+    text-align: left;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    font-weight: bold;
+  }
+  td {
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    vertical-align: top;
+  }
+  tr.headline td { font-weight: bold; }
+  .clear { color: #b02e2e; font-weight: bold; }
+  .noise { color: #8a8878; }
+  .good-text { color: #006300; }
+  .callout {
+    background: #f6f5f0;
+    border-left: 3px solid #b02e2e;
+    padding: 0.7em 1em;
+    margin: 1em 0;
+    font-size: 9.8pt;
+  }
+  .callout.good { border-left-color: #0ca30c; }
+  .callout.info { border-left-color: #52514e; }
+  .callout .label { font-weight: bold; display: block; margin-bottom: 0.2em; }
+  code {
+    font-family: 'Courier New', monospace;
+    background: #f1f0ea;
+    padding: 0.05em 0.3em;
+    font-size: 9.2pt;
+  }
+  ol, ul { margin: 0.5em 0; padding-left: 1.4em; }
+  li { margin: 0.3em 0; }
+  .chart {
+    text-align: center;
+    margin: 1.1em 0;
+  }
+  .chart img {
+    width: 90%;
+  }
+  .chart.wide img {
+    width: 100%;
+  }
+  .chart .caption {
+    font-size: 8.8pt;
+    color: #9a9990;
+    font-style: italic;
+    margin-top: 0.3em;
+  }
+  .page-break { page-break-before: always; }
+  .phase-tag {
+    display: inline-block;
+    background: #0b0b0b;
+    color: #fcfcfb;
+    font-size: 8.5pt;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 2px;
+    margin-bottom: 0.6em;
+    letter-spacing: 0.03em;
+  }
+  .status-done { color: #006300; font-weight: bold; }
+  .status-progress { color: #b26a00; font-weight: bold; }
+  .status-parked { color: #9a9990; }
+  .toc {
+    background: #f6f5f0;
+    padding: 1em 1.3em;
+    margin: 1.4em 0;
+    font-size: 10pt;
+  }
+  .toc ol { padding-left: 1.2em; }
+  .toc li { margin: 0.35em 0; }
+</style>
+</head>
+<body>
+
+<h1>Machine Learning&ndash;Guided Screening of Magnetic Materials for Thermally Robust Non-Volatile Data Storage</h1>
+<div class="subtitle">Full project report &mdash; methodology, figures, and results across all five phases</div>
+<div class="meta">Prepared for advisor review &middot; 21 August 2026</div>
+
+<div class="callout info">
+  <span class="label">How to read this report</span>
+  Each phase section states what was done, exactly how (data source, method, tool), and what the result was, with the
+  supporting figure or table inline. Section 6 (DFT validation) is the newest work and the main discussion item for
+  this meeting.
+</div>
+
+<div class="toc">
+<strong>Contents</strong>
+<ol>
+  <li>Project goal and pipeline overview</li>
+  <li>Phase 0 &mdash; Data harmonization</li>
+  <li>Phase 1 &mdash; Bias-corrected magnetic-ordering classifier</li>
+  <li>Phase 2 &mdash; Candidate screening, structure backfill, MACE relaxation</li>
+  <li>Phase 3 &mdash; MACE foundation-model fine-tuning</li>
+  <li>Phase 4a &mdash; Exploratory spin dynamics (Pd/Fe/Ir(111))</li>
+  <li>Phase 4b &mdash; Real DFT magnetic-ordering validation (24 candidates)</li>
+  <li>Summary of open items</li>
+  <li>Recommendation for discussion</li>
+</ol>
+</div>
+
+<h2 class="page-break">1. Project goal and pipeline overview</h2>
+<p>
+The project screens magnetic materials &mdash; computationally and, where candidates warrant it, via spin-dynamics
+simulation &mdash; for systems that host stable, controllable spin textures (e.g. spin spirals, skyrmion-hosting
+interfaces such as Pd/Fe/Ir(111)-type stacks) suitable for thermally robust non-volatile memory. The approach
+combines (a) a large harmonized materials database, (b) an ML classifier for magnetic ordering that corrects for
+known sampling bias in existing databases, (c) a machine-learned interatomic potential (MLIP) fine-tuned for
+magnetic systems, and (d) atomistic spin-dynamics simulation of shortlisted candidates, cross-checked against real DFT.
+</p>
+<table>
+  <tr><th>Phase</th><th>Purpose</th><th>Status</th></tr>
+  <tr><td>0 &mdash; Data harmonization</td><td>Merge multiple public materials databases into one schema</td>
+      <td class="status-done">Complete &mdash; 7 sources, 64,635 records</td></tr>
+  <tr><td>1 &mdash; Ordering classifier</td><td>Predict magnetic ordering from composition + structure</td>
+      <td class="status-done">Complete &mdash; v2, 67.0% accuracy</td></tr>
+  <tr><td>2 &mdash; Candidate screening</td><td>Filter for DMI-compatible candidates, backfill structures, relax with MACE</td>
+      <td class="status-done">Complete &mdash; 298 relaxed, top-30 shortlist</td></tr>
+  <tr><td>3 &mdash; MLIP fine-tuning</td><td>Fine-tune MACE for fast, accurate magnetic-system energetics</td>
+      <td class="status-done">Complete &mdash; 60/60 epochs</td></tr>
+  <tr><td>4 &mdash; Spin dynamics &amp; DFT validation</td><td>LAMMPS-SPIN simulation + real VASP energy mapping</td>
+      <td class="status-progress">In progress &mdash; 1 system simulated, 24 of 26 candidates DFT-validated</td></tr>
+</table>
+
+<h2 class="page-break">2. Phase 0 &mdash; Data harmonization</h2>
+<span class="phase-tag">PHASE 0 &middot; COMPLETE</span>
+<p>
+All sources are merged into one harmonized schema (<code>material_id</code>, <code>formula</code>, <code>elements</code>,
+<code>space_group</code>, <code>density</code>, <code>volume</code>, <code>band_gap</code>, <code>ordering</code>,
+<code>total_magnetization</code>, and &mdash; where available &mdash; full structure and per-site <code>magmom</code>
+vectors). Records keep their source database tagged rather than being silently deduplicated.
+</p>
+<div class="chart">
+  <img src="phase0_sources.png">
+</div>
+<table>
+  <tr><th>Source</th><th>Records</th><th>Fields</th><th>Notes</th></tr>
+  <tr><td>Materials Project</td><td>37,783</td><td>full schema</td><td>via <code>mp-api</code></td></tr>
+  <tr><td>JARVIS-DFT</td><td>19,116</td><td>full schema</td><td>0% populated ordering labels (see §3)</td></tr>
+  <tr><td>AFLOW</td><td>2,639</td><td>full schema</td><td></td></tr>
+  <tr><td>MAGNDATA (rescraped)</td><td>1,919 of 2,414 attempted</td><td>full schema + structure + per-site magmom</td><td>only ground-truth magnetic-structure source</td></tr>
+  <tr><td>2DMatPedia</td><td>1,862</td><td>full schema + structure</td><td>project's only 2D-materials source so far</td></tr>
+  <tr><td>OQMD</td><td>816</td><td>composition + stability</td><td>no magnetism fields; cross-validation role only</td></tr>
+  <tr><td>NOMAD</td><td>500</td><td>full schema</td><td></td></tr>
+  <tr class="headline"><td>Total</td><td>64,635</td><td>3,781 with full structure</td><td></td></tr>
+</table>
+
+<h3>2.1 MAGNDATA rescrape</h3>
+<p>
+MAGNDATA (Bilbao Crystallographic Server) is the only source with <strong>ground-truth</strong> magnetic structure
+(not a composition-based guess) &mdash; a hard blocker for both the Phase 1 classifier and Phases 3&ndash;4, which
+need per-site magnetic moments as input. The existing scrape covered only 79&ndash;102 records with no surviving
+acquisition script. A new scraper was written and verified end-to-end against the live server: the full index
+returns all 2,414 unique entries in one page (no pagination, ~24&times; the previous scrape); structure files (MCIF)
+are downloaded once the filename-construction rule was reverse-engineered; per-site magnetic moments, space group,
+and structure are parsed via <code>pymatgen</code>, with ordering (FM/AFM/FiM/NM) derived from net-vs-summed moment
+magnitude and validated against a known case (LaMnO&#8323;, correctly recovered as AFM, space group 62/Pnma).
+</p>
+<div class="callout good">
+  <span class="label">Result</span>
+  1,919 / 2,414 entries successfully parsed (79.5%). Of the 495 permanent failures, 466 are disordered/partial-occupancy
+  structures that <code>pymatgen</code>'s CIF parser cannot represent &mdash; an upstream limitation, not a scraper bug.
+</div>
+
+<h3>2.2 Data-quality bug found and fixed</h3>
+<p>
+OQMD's <code>elements</code> and <code>space_group_number</code> fields were silently hardcoded to <code>None</code>
+in the acquisition script despite the raw source fields being present and parseable &mdash; discovered because the
+Phase 2 screening funnel was dropping exactly 816 records, OQMD's full count. Fixed via
+<code>pymatgen.core.Composition</code> and <code>pymatgen.symmetry.groups.SpaceGroup</code> (with an
+underscore-notation fallback for screw-axis symbols like "P21/m"&rarr;"P2_1/m"); this unblocked 32 OQMD candidates
+in the Phase 2 funnel.
+</p>
+
+<h2 class="page-break">3. Phase 1 &mdash; Bias-corrected magnetic-ordering classifier</h2>
+<span class="phase-tag">PHASE 1 &middot; COMPLETE</span>
+<p>
+A LightGBM model predicts ordering (FM/AFM/FiM/NM) for any candidate. The v1 baseline used only composition-derived
+features (per-element statistics: mean/min/max/range/std of atomic number, mass, electronegativity, atomic radius,
+plus group/period/transition-metal/rare-earth fractions). Retraining on 24&times; more MAGNDATA ground-truth data
+left v1's accuracy essentially flat (56.7%) &mdash; a real ceiling, because the feature set never consumed structure
+or per-site <code>magmom</code> fields that the new records actually carried.
+</p>
+
+<h3>3.1 Structure-aware features (v2)</h3>
+<p>
+Two tiers of structural features were added. <strong>Tier 1</strong> (broad, ~100% coverage): space group number,
+crystal-system bucket, unit-cell volume, site count. <strong>Tier 2</strong> (narrow, MAGNDATA-only, ~5.3% coverage):
+local geometry around magnetic-species sites (nearest magnetic-magnetic neighbor distance, coordination number) &mdash;
+computed from atomic positions and species only, deliberately <em>not</em> from the magmom vectors themselves, since
+that would leak the label-generating function. Missing Tier 2 values are left as <code>NaN</code>; LightGBM handles
+this natively.
+</p>
+<div class="chart">
+  <img src="phase1_ablation.png">
+</div>
+<p>
+Both tiers contribute independently: broad symmetry/volume fields close roughly two-thirds of the gap on their own;
+the narrow, MAGNDATA-only local-geometry features add a comparable amount despite covering only ~5% of rows.
+<code>space_group_number</code> is now the single most important feature (previously absent from v1 entirely).
+</p>
+<div class="chart">
+  <img src="phase1_feature_importance.png">
+</div>
+
+<table>
+  <tr><th>Metric</th><th>v1 (composition only)</th><th>v2 (full, current)</th></tr>
+  <tr><td>Accuracy</td><td>56.7%</td><td class="clear">67.0%</td></tr>
+  <tr><td>Balanced accuracy</td><td>60.7%</td><td class="clear">68.1%</td></tr>
+  <tr><td>Train / test size</td><td>27,234 / 6,809</td><td>28,769 / 7,193</td></tr>
+  <tr><td>Class balance</td><td colspan="2">FM 22,259 &middot; FiM 6,238 &middot; AFM 3,735 &middot; NM 3,730</td></tr>
+</table>
+
+<div class="callout">
+  <span class="label">Material finding, relevant to all downstream phases</span>
+  JARVIS (19,116 raw records, would be the second-largest source) had <strong>zero</strong> populated
+  <code>ordering</code> labels. Of 61,457 harmonized records, only 35,962 had a usable ordering label at all &mdash;
+  Materials Project (34,037) and MAGNDATA (1,919) account for effectively all of it. The Phase 2 deployment
+  classifier now predicts ordering for these previously-unusable records, but their labels are model
+  <em>predictions</em>, not ground truth &mdash; distinct from the <code>ground_truth</code>-sourced labels this
+  report's Phase 4b DFT check focuses on.
+</div>
+
+<h2 class="page-break">4. Phase 2 &mdash; Candidate screening, structure backfill, MACE relaxation</h2>
+<span class="phase-tag">PHASE 2 &middot; COMPLETE</span>
+<p>
+A deployment classifier (same v2 features, trained on all labeled data) predicts ordering for every record lacking
+a ground-truth label, including all 19,116 JARVIS records. The full 64,635-record database is then filtered for
+candidates physically compatible with a Dzyaloshinskii&ndash;Moriya interaction (DMI) &mdash; the mechanism
+responsible for stabilizing the chiral spin textures this project targets.
+</p>
+<h4>Screening criteria</h4>
+<ul>
+  <li><strong>Net magnetic moment</strong> &mdash; ordering is FM or FiM (AFM excluded; the Phase 4 simulation code assumes a net-moment texture).</li>
+  <li><strong>Noncentrosymmetric space group</strong> &mdash; DMI is symmetry-forbidden under inversion. Verified computationally: all 230 space groups checked for an inversion operator (92 centrosymmetric / 138 noncentrosymmetric, matching the textbook count).</li>
+  <li><strong>A heavy spin&ndash;orbit-coupling element present</strong> (Ta, W, Re, Os, Ir, Pt, Au, Hg, Bi) &mdash; the classic DMI-enhancing species (Fert&ndash;Levy / Moriya mechanisms). A heuristic compositional filter, not a computed DMI magnitude.</li>
+  <li><strong>Thermodynamic plausibility</strong> &mdash; <code>energy_above_hull</code> &le; 0.1 eV/atom where known (92.6% coverage).</li>
+</ul>
+<div class="chart">
+  <img src="phase2_funnel.png">
+</div>
+<p>
+Of 64,635 records, <strong>1,647</strong> pass the full funnel (MP 772, AFLOW 386, JARVIS 353, NOMAD 62, 2DMatPedia
+40, OQMD 32, MAGNDATA 2).
+</p>
+
+<h3>4.1 Structure backfill and MACE relaxation</h3>
+<p>
+For the top 100 screened candidates per source, structures were fetched via each source's own public data-access
+method (JARVIS's bulk figshare dataset, AFLOW's AFLUX REST API, Materials Project's <code>mp_api</code>) &mdash;
+299 of 300 attempted backfills succeeded. Each backfilled structure, already DFT-relaxed at its source's own
+settings, was then re-relaxed with the fine-tuned MACE potential (position-only / fixed-cell) as an independent
+consistency check.
+</p>
+<div class="callout good">
+  <span class="label">Result</span>
+  298/298 candidates relaxed without error and converged (max force &le; 0.05 eV/&Aring;). Relaxation-energy shift
+  was near-zero for the overwhelming majority (median 0.0009 eV/atom) &mdash; strong agreement between the
+  fine-tuned MACE potential and each source's own DFT. The worst outliers were almost all JARVIS candidates already
+  flagged far from the convex hull by DFT &mdash; MACE's independent judgment corroborates the source thermodynamic
+  data rather than contradicting it.
+</div>
+<p>
+The classifier-confidence ranking and MACE relaxation-consistency signal were merged into one final ranking
+(converged &rarr; hull-stable &rarr; smallest MACE relaxation shift &rarr; classifier confidence). The top 30 are
+written to <code>outputs/phase4_shortlist.csv</code>, ready for Phase 4 simulation. The top candidate is
+<strong>mp-1520073</strong> (SrCaFeBiO&#8326;, FM, ground-truth label, cubic, noncentrosymmetric, contains Bi, 0.089 eV/atom
+above hull, zero relaxation shift).
+</p>
+
+<h2 class="page-break">5. Phase 3 &mdash; MACE foundation-model fine-tuning</h2>
+<span class="phase-tag">PHASE 3 &middot; COMPLETE</span>
+<p>
+MACE's <code>small</code> foundation model was fine-tuned on the harmonized dataset using multihead training: a
+<code>Default</code> head learns the new magnetic-materials data while a <code>pt_head</code> replays a
+20,000-configuration sample of the original pretraining distribution, to fine-tune on the new domain without
+catastrophically forgetting the foundation model's general chemistry.
+</p>
+<table>
+  <tr><th>Setting</th><th>Value</th></tr>
+  <tr><td>Foundation model</td><td>MACE-small</td></tr>
+  <tr><td>Precision</td><td>float32 (switched from float64 default &mdash; see below)</td></tr>
+  <tr><td>Batch size</td><td>32</td></tr>
+  <tr><td>Max epochs</td><td>60 (SWA from epoch 45, patience 15)</td></tr>
+  <tr><td>Loss weighting</td><td>energy 1.0 / forces 100.0 / stress 1.0 (Stage 1); energy 1000 / forces 100 / stress 10 (Stage 2, post-SWA)</td></tr>
+  <tr><td>Replay set</td><td>20,000 foundation-distribution configurations (<code>pt_head</code>)</td></tr>
+</table>
+<div class="callout info">
+  <span class="label">Performance fix</span>
+  The initial run defaulted to float64 precision and single-threaded data loading (silent defaults, not deliberate
+  choices), running at ~32 min/epoch (~32h projected). Switching to float32 with 8 parallel data-loading workers cut
+  this to ~6.3 min/epoch &mdash; a 5&times; speedup, confirmed stable across all 60 epochs.
+</div>
+<p>All 60/60 epochs finished successfully; both Stage 1 (epoch 44) and Stage 2/SWA (epoch 59) checkpoints were saved:</p>
+<table>
+  <tr><th>Checkpoint</th><th>Split</th><th>Energy RMSE</th><th>Forces RMSE</th><th>Stress RMSE</th></tr>
+  <tr><td>Stage 1 (epoch 44)</td><td>train</td><td>75.2 meV/atom</td><td>104.0 meV/&Aring;</td><td>11.6</td></tr>
+  <tr><td>Stage 1 (epoch 44)</td><td>valid</td><td>79.1 meV/atom</td><td>111.0 meV/&Aring;</td><td>7.8</td></tr>
+  <tr><td>Stage 2 / SWA (epoch 59)</td><td>train</td><td>41.7 meV/atom</td><td>122.6 meV/&Aring;</td><td>12.8</td></tr>
+  <tr class="headline"><td>Stage 2 / SWA (epoch 59)</td><td>valid</td><td>51.1 meV/atom</td><td>133.4 meV/&Aring;</td><td>9.1</td></tr>
+</table>
+<p>
+The Stage 2 loss reweighting markedly improved energy accuracy (valid RMSE<sub>E</sub> 79.1 &rarr; 51.1 meV/atom) at
+a small cost to force/stress accuracy, as intended. Native training diagnostics below (loss curves, RMSE vs. epoch,
+and predicted-vs-reference parity plots for energy/forces/stress):
+</p>
+<div class="chart wide">
+  <img src="../../data/finetune/realrun_run/results/realrun_run-123_train_Default_stage_two.png">
+  <div class="caption">Default head, full run (epoch 0&ndash;59). Vertical line marks the Stage 2/SWA transition (epoch 45).</div>
+</div>
+<div class="callout">
+  <span class="label">Partial-forgetting signal, resolved</span>
+  During Stage 1, the <code>pt_head</code>'s replay-distribution energy RMSE drifted from 39.6 up to a peak of
+  134.4 meV/atom at epoch 43 (~3.4&times; degradation) &mdash; genuine partial forgetting. The Stage 2 reweighting
+  largely corrected this: <code>pt_head</code> RMSE recovered to 54.2 meV/atom by epoch 58, close to its starting value.
+</div>
+
+<h2 class="page-break">6. Phase 4a &mdash; Exploratory spin dynamics</h2>
+<span class="phase-tag">PHASE 4a &middot; COMPLETE (exploratory)</span>
+<p>
+One candidate interfacial system &mdash; a Pd/Fe/Ir(111)-type stack, chosen for its interfacial DMI &mdash; was
+simulated with LAMMPS-SPIN (exchange + DMI + Zeeman/precession + Langevin thermostat + LBFGS minimization).
+</p>
+<h4>Solver bug found, root-caused, and fixed</h4>
+<p>
+A dynamics-integration segfault was isolated via systematic one-variable-at-a-time bisection (11 reproducer
+scripts) to a genuine upstream LAMMPS bug: <code>pair_style hybrid/overlay</code> segfaults whenever it wraps
+exactly two SPIN-package pair substyles. Confirmed against LAMMPS's own official <code>examples/SPIN/bfo</code>
+(which combines three substyles and runs cleanly on the same build). <strong>Workaround:</strong> pad the production
+Hamiltonian with a third, physically-inert substyle &mdash; verified against the real 600-atom system before adopting.
+</p>
+<h4>Findings</h4>
+<ul>
+  <li>Spin-spiral wavelength consistent across 5 independent seeds (5.0&ndash;5.8 nm, mean ~5.4 nm) &mdash; a genuine equilibrium property, not a quench artifact.</li>
+  <li>That wavelength is ~20% longer than the ~4.5 nm target reported in reference literature for this system.</li>
+  <li>Propagation direction is not consistently aligned to the crystallographically preferred (&Gamma;&ndash;K) directions across seeds &mdash; indicative of a multi-domain outcome.</li>
+  <li>Most likely cause: the DMI term is currently coded as a single uniform bond-independent vector, whereas this system physically requires a bond-direction-dependent (Fert&ndash;Levy) DMI form, which LAMMPS's stock <code>spin/dmi</code> pair style cannot express via one <code>pair_coeff</code>. Parked pending a priority call.</li>
+</ul>
+<p>
+A refined 33-run finite-temperature scan (190&ndash;245 K, bracketing the reference paper's T<sub>c</sub>&asymp;214 K,
+run via single-core task-level parallelism after MPI domain decomposition was found structurally incompatible with
+this system's quasi-2D geometry) completed with no errors. Energy rises smoothly and monotonically with T as
+expected; the heat-capacity-like signal shows a mild decrease around 210&ndash;220 K rather than a sharp peak &mdash;
+a real but inconclusive signal, most likely because the 2 ps production window is too short to resolve critical
+slowing-down cleanly.
+</p>
+
+<h2 class="page-break">7. Phase 4b &mdash; Real DFT magnetic-ordering validation</h2>
+<span class="phase-tag">PHASE 4b &middot; IN PROGRESS &middot; 24 OF 26 CANDIDATES COMPLETE</span>
+
+<h3>7.1 Why this check exists</h3>
+<p>
+Generalizing Phase 4a's spin dynamics to new shortlisted candidates requires per-candidate exchange (J) and DMI (D)
+constants that nothing in this pipeline can honestly produce &mdash; the fine-tuned MACE model was never trained
+with per-site <code>magmom</code> as an input feature, so it cannot distinguish FM from AFM orderings of the same
+atomic structure. Separately, the screening pipeline (§4) treats Materials Project's stored magnetic ordering as
+ground truth (<code>ordering_source=ground_truth, confidence=1.0</code>) wherever MP is the source database &mdash;
+an assumption this project had no way to check until real DFT compute became available on the account's HPC
+clusters (<code>paramsanganak</code>, IIT Kanpur).
+</p>
+
+<h3>7.2 Method</h3>
+<p>
+The same collinear magnetic-ordering energy-mapping approach behind Materials Project's own magnetic-ordering
+workflow (Horton, Montoya &amp; Persson, <em>npj Comput. Mater.</em> 2019):
+</p>
+<ol>
+  <li>Take the candidate's relaxed structure from the harmonized dataset.</li>
+  <li>Enumerate symmetry-distinct FM/AFM spin configurations with <code>pymatgen.MagneticStructureEnumerator</code> (backed by <code>enumlib</code>).</li>
+  <li>Generate VASP inputs with <code>MPRelaxSet</code> &mdash; MP's own GGA+U, ENCUT (520 eV), and k-point convention (e.g. Fe gets <code>LDAUU=5.3</code> eV, matching MP exactly) &mdash; overriding only <code>MAGMOM</code> per ordering.</li>
+  <li>Run each configuration to convergence (48 cores/job). The original 6 candidates ran on
+      <code>paramsanganak</code> (VASP 5.4.4); all later candidates ran on <code>paramrudra</code> (VASP 6.4.3)
+      after <code>paramsanganak</code> became unavailable mid-project.</li>
+  <li>Compare converged total energies per atom; the lowest is the DFT ground state.</li>
+</ol>
+<p>
+This keeps results directly comparable to the ground-truth MP energies each candidate was screened against, rather
+than being an arbitrary DFT recipe. 85 individual calculations (across the 24 complete candidates) converged
+cleanly &mdash; every <code>OUTCAR</code> reports "reached required accuracy". 2 candidates are still running:
+mp-1173143 (1 of 4 configs converged) and mp-682554 (1 of 4 configs converged, a sulfide with no LDA+U applied
+&mdash; unrelated to the tungsten issue below).
+</p>
+<div class="callout info">
+  <span class="label">Infrastructure built for this check</span>
+  POTCAR pseudopotentials are license-restricted and were never copied into this repository &mdash; only symbol
+  names are generated locally; actual POTCAR files are concatenated remotely from the account's licensed
+  pseudopotential library. Along the way, two environment bugs were found and fixed: a stale Intel compiler module
+  name after a cluster module-tree reorganization (fixed by sourcing <code>compilervars.sh</code>/<code>mpivars.sh</code>
+  directly), and a default MPI stack-size limit too small for VASP's non-local projector routines at 48-way
+  parallelism (fixed with <code>ulimit -s unlimited</code>).
+</div>
+<div class="callout info">
+  <span class="label">Hubbard U on tungsten removed for 5 candidates (methodological deviation)</span>
+  All 5 W-bearing candidates (mp-754090, mp-755203, mp-769471, mp-775194, mp-850225) initially failed to converge
+  under MP's standard GGA+U value (<code>U=6.2</code> eV on W): W here is formally W6+, nominally d0, and a large U
+  on a near-empty d-shell leaves the SCF density with no restoring force, so it oscillates indefinitely instead of
+  converging. Confirmed with 11 independent sandbox tests; the only working fix is removing U from W entirely
+  (<code>LDAUL=-1</code>), applied uniformly across all orderings of a compound. This converged all 18 production
+  orderings cleanly on the first attempt (verified against false convergence via <code>rms(c)</code>, not just the
+  "EDIFF is reached" banner). The within-compound FM-vs-AFM verdict for each of these 5 is unaffected, but their
+  absolute energies are not on the same U footing as MP's database or the other 19 candidates here.
+</div>
+
+<h3>7.3 First case: mp-861559 (TaFeO&#8324;)</h3>
+<p>
+Chosen first because its 6 Fe sites in one 36-atom cell allow AFM ordering enumeration without a supercell. FM + 3
+symmetry-distinct AFM orderings were run to convergence:
+</p>
+<table>
+  <tr><th>Ordering</th><th>TOTEN (eV)</th><th>mag (&mu;<sub>B</sub>)</th><th>&Delta;E vs. FM</th></tr>
+  <tr><td>FM (MP's recorded label)</td><td>&minus;304.60011</td><td>30.0</td><td>&mdash;</td></tr>
+  <tr class="headline"><td>AFM-1</td><td>&minus;304.87416</td><td>0.0</td><td class="clear">&minus;0.274 eV</td></tr>
+  <tr><td>AFM-2</td><td>&minus;304.78236</td><td>0.0</td><td>&minus;0.182 eV</td></tr>
+  <tr><td>AFM-3</td><td>&minus;304.74876</td><td>0.0</td><td>&minus;0.149 eV</td></tr>
+</table>
+<p>
+Sanity check on the setup itself: this run's converged FM magnetization (29.99998 &mu;<sub>B</sub>) matches MP's own
+recorded value (30.0022251 &mu;<sub>B</sub>) almost exactly &mdash; the local calculation reproduces MP's own result,
+so the AFM finding is not a convention mismatch. All three AFM orderings tested come out lower than FM; AFM-1 is the
+ground state, 0.274 eV/cell (&asymp;45.7 meV/Fe) below FM. <strong>The classifier's FM label for mp-861559 is not
+confirmed by DFT.</strong> This one result argued for extending the same check to more shortlisted candidates.
+</p>
+
+<h3>7.4 Extending to the full 24-candidate batch</h3>
+<p>
+The remaining <code>ordering_source=ground_truth, confidence=1.0</code> entries from
+<code>outputs/phase4_shortlist.csv</code> were run through the identical pipeline. 24 candidates (85 calculations
+total) have completed; 2 more (mp-1173143, mp-682554) are still running. Five of the 24 required removing Hubbard U
+from tungsten to converge &mdash; see the callout above.
+</p>
+<div class="chart">
+  <img src="dft_validation_chart.png">
+</div>
+<table>
+  <tr>
+    <th>Candidate</th>
+    <th>Formula</th>
+    <th>Label</th>
+    <th>DFT ground state</th>
+    <th>Margin (meV/atom)</th>
+    <th>Signal</th>
+  </tr>
+  <tr class="headline"><td>mp-1228376</td><td>Ba3Fe2WO9</td><td>FM</td><td>AFM</td><td>24.68</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr class="headline"><td>mp-1218521</td><td>Sr3TaFeO7</td><td>FM</td><td>AFM</td><td>14.03</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-1519427</td><td>BaCaFeBiO6</td><td>FM</td><td>AFM</td><td>11.74</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-1520073</td><td>SrCaFeBiO6</td><td>FM</td><td>AFM</td><td>11.71</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-1522159</td><td>BaSrFeBiO6</td><td>FM</td><td>AFM</td><td>11.66</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-1217456</td><td>Ti4FeBiPb4O15</td><td>FM</td><td>AFM</td><td>9.18</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-1217946</td><td>TaFeO4 (entry 2)</td><td>FM</td><td>AFM</td><td>8.92</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-861559</td><td>TaFeO4 (entry 1)</td><td>FM</td><td>AFM</td><td>7.61</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-22972</td><td>Tb6FeBi2</td><td>FiM</td><td>AFM</td><td>7.32</td><td class="clear">clear vs FM, doesn't test FiM</td></tr>
+  <tr><td>mp-775194 &dagger;</td><td>Li2Fe3WO8</td><td>FM</td><td>AFM</td><td>6.59</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-1301722</td><td>Ca3Fe2(WO6)2</td><td>FM</td><td>AFM</td><td>2.73</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr class="headline"><td>mp-754090 &dagger;</td><td>Li4Fe2TeWO12</td><td>FM</td><td>FM</td><td>2.41</td><td class="good">clear &mdash; confirmed</td></tr>
+  <tr class="headline"><td>mp-1079285</td><td>Tb6FeBi2 (entry 2)</td><td>FM</td><td>FM</td><td>2.32</td><td class="good">clear &mdash; confirmed</td></tr>
+  <tr><td>mp-769471 &dagger;</td><td>Fe3Co2P6WO24</td><td>FM</td><td>AFM</td><td>2.17</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr class="headline"><td>mp-850225 &dagger;</td><td>FeP6(WO8)3</td><td>FM</td><td>FM</td><td>2.10</td><td class="good">clear &mdash; confirmed</td></tr>
+  <tr><td>mp-1343817</td><td>CaFeReO6</td><td>FM</td><td>AFM</td><td>1.77</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-1197024</td><td>FeBi(SeO3)3</td><td>FM</td><td>AFM</td><td>1.19</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr class="headline"><td>mp-1228547</td><td>Ba4Ta10FeO30</td><td>FM</td><td>FM</td><td>1.18</td><td class="good">clear &mdash; confirmed</td></tr>
+  <tr><td>mp-755203 &dagger;</td><td>Li4NbFe(WO6)2</td><td>FM</td><td>AFM</td><td>0.73</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-551086</td><td>CrFe(BiO3)2</td><td>FiM</td><td>AFM</td><td>0.57</td><td class="clear">clear vs FM, doesn't test FiM</td></tr>
+  <tr><td>mp-1173139</td><td>Ta2FeO6</td><td>FM</td><td>AFM</td><td>0.31</td><td class="clear">clear &mdash; overturned</td></tr>
+  <tr><td>mp-1047414</td><td>Zn2FeWO6</td><td>FM</td><td>AFM</td><td>0.10</td><td class="noise">noise-level</td></tr>
+  <tr><td>mp-1043970</td><td>CaLaTaFeO6</td><td>FM</td><td>AFM</td><td>0.09</td><td class="noise">noise-level</td></tr>
+  <tr><td>mp-1216981</td><td>TiFeBiPbO6</td><td>FM</td><td>FM</td><td>0.02</td><td class="noise">noise-level</td></tr>
+</table>
+<div class="callout">
+  <span class="label">Breakdown of the 24</span>
+  <strong>17 clearly overturned</strong> to AFM (0.31&ndash;24.68 meV/atom); <strong>4 clearly confirmed</strong> as
+  FM (mp-1079285, mp-1228547, mp-754090 &dagger;, mp-850225 &dagger;; 1.18&ndash;2.41 meV/atom); <strong>3
+  noise-level ties</strong> (&le;0.10 meV/atom: mp-1047414, mp-1043970, mp-1216981) sitting well inside the
+  <code>EDIFF=1e-6</code> eV electronic-convergence tolerance (<code>MPRelaxSet</code> default) &mdash; read as
+  "FM and AFM degenerate to DFT precision," not as confirming either ordering. Among the 21 that resolve clearly,
+  "AFM overturns FM" outnumbers "FM confirmed" 17 to 4.
+</div>
+
+<h3 class="page-break">7.5 Conclusion</h3>
+<p>
+<strong>4 of 24</strong> <code>ground_truth, confidence=1.0</code> FM labels checked against real DFT are confirmed
+as the true magnetic ground state. 17 are clearly overturned to AFM; 3 are statistically tied and uninformative
+(2 candidates are still running). This is no longer a single anecdote &mdash; it is a consistent pattern showing the
+same MP labeling gap recurring across unrelated compositions and space groups: MP's routine per-entry pipeline
+relaxes from a single initial magnetic-moment guess and never enumerates AFM alternatives, so its stored "ground
+truth" reflects whatever configuration that guess happened to converge to.
+</p>
+<div class="callout info">
+  <span class="label">Caveat on sample composition</span>
+  This is 24 candidates, not a random sample &mdash; all were pulled from the top of the DMI-filtered shortlist
+  (noncentrosymmetric, heavy-SOC-element, net-moment structures). It is plausible this structural family is more
+  AFM-prone than the <code>ground_truth</code> population as a whole, which would mean the true project-wide
+  mislabeling rate is lower than "17/24." What this sample <em>does</em> establish firmly: the label cannot be taken
+  at face value for candidates in this specific shortlisted population without an actual DFT check &mdash; and this
+  population is exactly what Phase 2 (§4) and Phase 4a (§6) draw from.
+</div>
+
+<h2 class="page-break">8. Summary of open items</h2>
+<table>
+  <tr><th>Item</th><th>Status</th></tr>
+  <tr><td>MAGNDATA rescrape (2,414 entries)</td><td class="status-done">Complete &mdash; 1,919 collected, 495 permanent upstream failures</td></tr>
+  <tr><td>Structure-aware classifier (v2)</td><td class="status-done">Complete &mdash; 56.7% &rarr; 67.0% accuracy</td></tr>
+  <tr><td>OQMD / 2DMatPedia / NOMAD acquisition</td><td class="status-done">Complete &mdash; 3,178 records added; OQMD bug fixed</td></tr>
+  <tr><td>Candidate screening pipeline</td><td class="status-done">Complete &mdash; 1,647 pass funnel, 298 relaxed, top 30 shortlisted</td></tr>
+  <tr><td>MACE fine-tuning (60 epochs)</td><td class="status-done">Complete &mdash; Stage 1 + Stage 2/SWA checkpoints saved</td></tr>
+  <tr><td>Exploratory spin dynamics (Pd/Fe/Ir)</td><td class="status-done">Complete &mdash; LAMMPS bug fixed, wavelength/direction findings in hand</td></tr>
+  <tr><td>Real DFT magnetic-ordering validation</td><td class="status-progress">24/26 shortlisted candidates complete (24/1,647 overall) &mdash; 4 of 24 confirmed, 17 overturned, 3 tied</td></tr>
+  <tr><td>Phase 4 candidate selection (how many of 30 to simulate)</td><td class="status-progress">Shortlist ready; with 17/24 FM labels overturned, DFT findings still argue for caution before committing spin-dynamics compute to unvalidated candidates</td></tr>
+  <tr><td>C2DB acquisition</td><td class="status-parked">Not started</td></tr>
+  <tr><td>Bond-dependent (Fert&ndash;Levy) DMI implementation</td><td class="status-parked">Parked, needs a priority call</td></tr>
+</table>
+
+<h2 class="page-break">9. Recommendation for discussion</h2>
+<ol>
+  <li><strong>Headline result</strong>: real DFT check of 24 shortlisted <code>ground_truth</code> FM labels finds
+      17 clearly wrong (AFM ground state), 3 inconclusive/degenerate, and 4 confirmed as FM.</li>
+  <li><strong>Implication</strong>: the classifier's/MP's ordering label should be treated as a <em>screening
+      prior</em>, not ground truth, for this shortlist's structural family (noncentrosymmetric, heavy-SOC,
+      Fe-magnetic-site compounds). Worth deciding whether to re-flag affected shortlist entries, or whether this
+      changes candidate ranking &mdash; the FM/AFM label doesn't currently feed the DMI funnel directly, but does
+      feed <code>ordering_final</code>, which is used to select "net-moment" candidates in
+      <code>screen_candidates.py</code>, and AFM is excluded from that funnel entirely.</li>
+  <li><strong>Open question</strong>: is 24 of 1,647 candidates &mdash; still all drawn from the top of the
+      DMI-filtered shortlist &mdash; enough evidence to act on, or does this need a larger, more representative
+      validation batch, e.g. a random sample stratified across the whole <code>ground_truth</code> population,
+      before changing how the pipeline treats these labels?</li>
+  <li><strong>Separately</strong>: the Fert&ndash;Levy bond-dependent DMI implementation (§6) is parked pending
+      priority, and the spin-dynamics T<sub>c</sub> signal (§6) is inconclusive at the current 2 ps run length
+      &mdash; both are candidates for the next block of compute time once the DFT-validation question above is settled.</li>
+</ol>
+
+<h3>Raw data references</h3>
+<ul>
+  <li>Classifier: <code>outputs/lightgbm_v2_eval_summary.json</code>, <code>outputs/lightgbm_v2_ablation.json</code>, <code>outputs/lightgbm_v2_feature_importance.csv</code></li>
+  <li>Screening: <code>outputs/candidate_screened_full.csv</code>, <code>outputs/candidate_relaxation_ranked.csv</code>, <code>outputs/phase4_shortlist.csv</code></li>
+  <li>DFT validation: <code>outputs/dft_ordering_validation.csv</code> (85 rows, 24 complete candidates, 2 more running); staged calculations under <code>data/dft_staging/&lt;candidate_id&gt;/{0_fm,1_afm,...}/results/</code></li>
+  <li>Detailed single-candidate and full 24-candidate writeups: <code>docs/dft_validation_mp-861559.md</code>, <code>docs/dft_validation_ground_truth_labels.md</code></li>
+</ul>
+
+</body>
+</html>

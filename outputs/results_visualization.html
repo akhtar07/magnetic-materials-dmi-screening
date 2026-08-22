@@ -1,0 +1,637 @@
+<title>Magnetic Ordering Results</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page:           #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --axis:           #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-afm:     #2a78d6;
+    --series-fm:      #eb6834;
+    --series-blue:    #2a78d6;
+    --series-blue-wash: rgba(42,120,214,0.10);
+    --good:           #006300;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page:           #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --grid:           #2c2c2a;
+      --axis:           #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-afm:     #3987e5;
+      --series-fm:      #d95926;
+      --series-blue:    #3987e5;
+      --series-blue-wash: rgba(57,135,229,0.14);
+      --good:           #0ca30c;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page:           #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --axis:           #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-afm:     #3987e5;
+    --series-fm:      #d95926;
+    --series-blue:    #3987e5;
+    --series-blue-wash: rgba(57,135,229,0.14);
+    --good:           #0ca30c;
+  }
+
+  .viz-root {
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 32px 16px 64px;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 650; margin: 0 0 4px; }
+  .lede { color: var(--text-secondary); font-size: 14px; margin: 0 0 28px; max-width: 640px; line-height: 1.5; }
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px 22px;
+    margin-bottom: 20px;
+  }
+  .card h2 { font-size: 15px; font-weight: 650; margin: 0 0 2px; }
+  .card .sub { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 16px; line-height: 1.5; }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary); margin: 10px 0 0; }
+  .legend .item { display: flex; align-items: center; gap: 6px; }
+  .legend .swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .axis-label { fill: var(--text-muted); font-size: 10.5px; }
+  .tick-label { fill: var(--text-muted); font-size: 10.5px; }
+  .gridline { stroke: var(--grid); stroke-width: 1; }
+  .baseline { stroke: var(--axis); stroke-width: 1; }
+  .bar-label { fill: var(--text-primary); font-size: 11px; font-weight: 600; }
+  .bar-sublabel { fill: var(--text-secondary); font-size: 10px; }
+  .flag { fill: var(--text-muted); font-size: 9.5px; font-style: italic; }
+  .row-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 620px) { .row-grid { grid-template-columns: 1fr; } }
+  .tooltip {
+    position: absolute; pointer-events: none; z-index: 5;
+    background: var(--text-primary); color: var(--surface-1);
+    font-size: 11px; line-height: 1.5; padding: 6px 9px; border-radius: 6px;
+    white-space: nowrap; opacity: 0; transition: opacity .08s ease;
+    transform: translate(-50%, -100%);
+  }
+  .chart-holder { position: relative; }
+  .ref-line { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 3 3; }
+  .ref-label { fill: var(--text-muted); font-size: 10px; }
+  details.table-toggle { margin-top: 14px; }
+  details.table-toggle summary { cursor: pointer; font-size: 11.5px; color: var(--text-secondary); user-select: none; }
+  table.data-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11.5px; }
+  table.data-table th, table.data-table td { text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+  table.data-table th:first-child, table.data-table td:first-child { text-align: left; }
+  table.data-table th { color: var(--text-muted); font-weight: 600; }
+  .finding {
+    font-size: 12.5px; line-height: 1.55; color: var(--text-secondary);
+    background: color-mix(in srgb, var(--series-fm) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--series-fm) 25%, transparent);
+    border-radius: 8px; padding: 10px 12px; margin-top: 14px;
+  }
+  .finding b { color: var(--text-primary); }
+  .stat-row { display: flex; gap: 24px; align-items: baseline; margin: 4px 0 16px; }
+  .stat-value { font-size: 32px; font-weight: 650; color: var(--text-primary); }
+  .stat-label { font-size: 12.5px; color: var(--text-secondary); }
+  .hbar-label { fill: var(--text-secondary); font-size: 11px; }
+  .hbar-value { fill: var(--text-primary); font-size: 11px; font-weight: 600; }
+  .hbar-sub { fill: var(--text-muted); font-size: 9.5px; }
+</style>
+
+<div class="viz-root">
+  <div class="wrap">
+    <h1>Magnetic Ordering Results</h1>
+    <p class="lede">DFT magnetic-ordering validation for TaFeO4 (mp-861559) against its dataset
+      label, and the Pd/Fe/Ir(111) finite-temperature spin-dynamics scan (33 runs, 11
+      temperatures × 3 seeds, refining a 10-point coarse pass).</p>
+
+    <div class="card">
+      <h2>DFT magnetic-ordering validation — mp-861559 (TaFeO4)</h2>
+      <p class="sub">4 converged VASP calculations (MPRelaxSet settings). Bars show total energy
+        relative to the DFT ground state, per 36-atom (6 f.u.) cell — lower is more stable.</p>
+      <div class="chart-holder" id="chart-dft"></div>
+      <div class="legend">
+        <div class="item"><span class="swatch" style="background:var(--series-afm)"></span>AFM configuration</div>
+        <div class="item"><span class="swatch" style="background:var(--series-fm)"></span>FM configuration</div>
+      </div>
+      <div class="finding">
+        <b>Label mismatch:</b> the dataset's <code>ordering_final=FM</code> (source=ground_truth,
+        confidence=1.0) is the <i>highest</i>-energy configuration tested here — every enumerated
+        AFM ordering is lower. The best AFM configuration sits 0.274&nbsp;eV below FM (0.092&nbsp;eV
+        below the next-best AFM variant). The FM run reproduces MP's own recorded magnetization
+        almost exactly (29.9998 vs 30.0022 μ<sub>B</sub>), so this isn't a settings mismatch — MP's
+        routine pipeline relaxed from a single initial guess and never checked AFM alternatives.
+      </div>
+      <details class="table-toggle">
+        <summary>View data table</summary>
+        <table class="data-table" id="table-dft"></table>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>Spin-dynamics finite-T scan — Pd/Fe/Ir(111) effective model</h2>
+      <p class="sub">Equilibrated averages over the last 30 thermo samples of each run
+        (~3&nbsp;ps trajectory); error bars are the spread across seeds where 3 seeds were run.
+        Dashed line marks the full model's reported T<sub>c</sub> ≈ 214&nbsp;K.</p>
+      <div class="row-grid">
+        <div>
+          <div class="sub" style="margin-bottom:6px;font-weight:600;color:var(--text-primary);font-size:12px;">Order parameter |m|</div>
+          <div class="chart-holder" id="chart-mag"></div>
+        </div>
+        <div>
+          <div class="sub" style="margin-bottom:6px;font-weight:600;color:var(--text-primary);font-size:12px;">Potential energy / atom (eV)</div>
+          <div class="chart-holder" id="chart-pe"></div>
+        </div>
+      </div>
+      <div class="finding">
+        <b>Worth a look:</b> |m| is already down near its ~1/√N finite-size noise floor
+        (N=15,000 spins ⇒ ≈0.008) by T≈100–150&nbsp;K, well below the 214&nbsp;K reference — the
+        effective model's order–disorder crossover in this scan appears to sit lower than the
+        full model's T<sub>c</sub>, consistent with the scan script's own note that "the effective
+        model may differ." Worth checking against the energy curve's inflection point before
+        treating 214&nbsp;K as confirmed for this model.
+      </div>
+      <details class="table-toggle">
+        <summary>View data table</summary>
+        <table class="data-table" id="table-spin"></table>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>Baseline ordering classifier — LightGBM v1 → v2</h2>
+      <p class="sub">4-class (FM/AFM/FiM/NM) classifier on 28,769 train / 7,193 test rows. v2 adds
+        symmetry/volume/nsites (Tier&nbsp;1) and local magnetic-site geometry (Tier&nbsp;2,
+        MAGNDATA-only, ~5.3% coverage) to v1's composition-only features.</p>
+      <div class="row-grid">
+        <div>
+          <div class="sub" style="margin-bottom:6px;font-weight:600;color:var(--text-primary);font-size:12px;">v1 vs v2</div>
+          <div class="chart-holder" id="chart-lgbm-compare"></div>
+        </div>
+        <div>
+          <div class="sub" style="margin-bottom:6px;font-weight:600;color:var(--text-primary);font-size:12px;">Feature ablation (balanced accuracy)</div>
+          <div class="chart-holder" id="chart-ablation"></div>
+        </div>
+      </div>
+      <div class="legend">
+        <div class="item"><span class="swatch" style="background:var(--series-afm)"></span>accuracy</div>
+        <div class="item"><span class="swatch" style="background:var(--series-fm)"></span>balanced accuracy</div>
+      </div>
+      <div class="sub" style="margin:18px 0 6px;font-weight:600;color:var(--text-primary);font-size:12px;">v2 accuracy by source database</div>
+      <div class="chart-holder" id="chart-persource"></div>
+      <div class="finding">
+        <b>Read the per-source split carefully:</b> AFLOW's apparent 100% accuracy is n=1 — not a
+        real signal. MAGNDATA's 89.5% accuracy but only 57.8% balanced accuracy means it's doing
+        well on the majority class and poorly elsewhere. Tier&nbsp;2 features alone score
+        <i>below</i> Tier&nbsp;1 alone (65.1% vs 65.6% balanced accuracy) since they only cover
+        MAGNDATA rows — but combined with Tier&nbsp;1 they still push the full model to 68.1%.
+      </div>
+      <details class="table-toggle">
+        <summary>View data table</summary>
+        <table class="data-table" id="table-lgbm"></table>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>Candidate screening funnel</h2>
+      <p class="sub">Candidates surviving each stage of <code>src/ranking/screen_candidates.py</code> → <code>finalize_phase4_shortlist.py</code>.</p>
+      <div class="chart-holder" id="chart-funnel"></div>
+      <details class="table-toggle">
+        <summary>View data table</summary>
+        <table class="data-table" id="table-funnel"></table>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>MLIP relaxation of candidate structures</h2>
+      <p class="sub">298 candidates relaxed with the fine-tuned MACE potential
+        (<code>src/mlip/relax_candidates.py</code>); force histogram below is the converged
+        <code>final_max_force</code> distribution (eV/Å).</p>
+      <div class="stat-row">
+        <div>
+          <div class="stat-value">298 / 298</div>
+          <div class="stat-label">converged (100%)</div>
+        </div>
+      </div>
+      <div class="chart-holder" id="chart-force"></div>
+      <div class="finding">
+        <b>Note:</b> the max force is capped right at 0.05&nbsp;eV/Å — that's the relaxation's own
+        convergence threshold, not a coincidence. 108 of 298 structures relaxed to <0.001&nbsp;eV/Å
+        (essentially already at the MLIP's minimum), while 188 needed the full run down to the
+        threshold. <code>relaxation_energy_per_atom</code> spans 0 to 1.79&nbsp;eV/atom (median
+        0.00088) — most candidates started very close to their relaxed structure, with a handful of
+        outliers requiring substantial relaxation, worth a second look before trusting their
+        MLIP energies.
+      </div>
+      <details class="table-toggle">
+        <summary>View data table</summary>
+        <table class="data-table" id="table-force"></table>
+      </details>
+    </div>
+  </div>
+</div>
+
+<script>
+const dftData = [
+  { calc: "1_afm", ordering: "AFM", toten: -304.87416, rel: 0.0 },
+  { calc: "2_afm", ordering: "AFM", toten: -304.78236, rel: 0.09180 },
+  { calc: "3_afm", ordering: "AFM", toten: -304.74876, rel: 0.12540 },
+  { calc: "0_fm",  ordering: "FM",  toten: -304.60011, rel: 0.27405, labeled: true },
+];
+
+const spinData = [
+  {T:10,  n:1, mag:0.031144, magStd:0, pe:0.000757, peStd:0},
+  {T:50,  n:1, mag:0.029919, magStd:0, pe:0.004295, peStd:0},
+  {T:100, n:1, mag:0.013902, magStd:0, pe:0.008116, peStd:0},
+  {T:150, n:1, mag:0.006498, magStd:0, pe:0.009667, peStd:0},
+  {T:180, n:1, mag:0.010360, magStd:0, pe:0.010058, peStd:0},
+  {T:190, n:3, mag:0.010111, magStd:0.000839, pe:0.010154, peStd:0.0000287},
+  {T:195, n:3, mag:0.009051, magStd:0.002986, pe:0.010192, peStd:0.0000323},
+  {T:200, n:3, mag:0.008572, magStd:0.002646, pe:0.010217, peStd:0.0000250},
+  {T:205, n:3, mag:0.007725, magStd:0.001693, pe:0.010262, peStd:0.0000274},
+  {T:210, n:3, mag:0.011253, magStd:0.002809, pe:0.010315, peStd:0.0000043},
+  {T:214, n:3, mag:0.009649, magStd:0.003033, pe:0.010337, peStd:0.0000277},
+  {T:218, n:3, mag:0.010668, magStd:0.002730, pe:0.010345, peStd:0.0000161},
+  {T:222, n:3, mag:0.009419, magStd:0.001740, pe:0.010370, peStd:0.0000187},
+  {T:226, n:3, mag:0.008940, magStd:0.002163, pe:0.010386, peStd:0.0000120},
+  {T:230, n:1, mag:0.008486, magStd:0, pe:0.010452, peStd:0},
+  {T:235, n:3, mag:0.010077, magStd:0.002210, pe:0.010442, peStd:0.0000124},
+  {T:245, n:3, mag:0.007126, magStd:0.000845, pe:0.010485, peStd:0.0000148},
+  {T:260, n:1, mag:0.008662, magStd:0, pe:0.010520, peStd:0},
+  {T:300, n:1, mag:0.007209, magStd:0, pe:0.010662, peStd:0},
+];
+
+const lgbmCompare = [
+  { label: "v1", sublabel: "composition only", accuracy: 0.5674, balanced: 0.6070 },
+  { label: "v2", sublabel: "+ structural features", accuracy: 0.6697, balanced: 0.6809 },
+];
+
+const ablationTiers = [
+  { label: "Composition only (v1-equiv)", value: 0.6070 },
+  { label: "+ Tier 1: symmetry, volume, nsites", value: 0.6562 },
+  { label: "+ Tier 2: local magnetic geometry (MAGNDATA only)", value: 0.6505 },
+  { label: "Full v2: Tier 1 + Tier 2", value: 0.6809 },
+];
+
+const perSource = [
+  { label: "MaterialsProject", n: 6791, accuracy: 0.6563, balanced: 0.6298 },
+  { label: "MAGNDATA", n: 401, accuracy: 0.8953, balanced: 0.5782 },
+  { label: "AFLOW", n: 1, accuracy: 1.0, balanced: 1.0, flag: "n=1" },
+];
+
+const funnelStages = [
+  { label: "Screened candidates", value: 1648 },
+  { label: "Shortlisted", value: 201, pctPrev: 201 / 1648 },
+  { label: "Final phase-4 shortlist", value: 31, pctPrev: 31 / 201 },
+];
+
+const forceHist = [
+  { label: "< 0.001 eV/Å", value: 108 },
+  { label: "0.001 – 0.01", value: 2 },
+  { label: "0.01 – 0.05 (threshold)", value: 188 },
+];
+
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+function fmt(n, d) { return Number(n).toFixed(d); }
+
+function tooltipFor(holder) {
+  const tip = document.createElement("div");
+  tip.className = "tooltip";
+  holder.appendChild(tip);
+  return {
+    show(x, y, html) {
+      tip.innerHTML = html;
+      tip.style.left = x + "px";
+      tip.style.top = (y - 10) + "px";
+      tip.style.opacity = "1";
+    },
+    hide() { tip.style.opacity = "0"; }
+  };
+}
+
+// ---------- DFT bar chart ----------
+function renderDftChart() {
+  const holder = document.getElementById("chart-dft");
+  const W = 640, H = 300, marginL = 46, marginR = 16, marginT = 16, marginB = 46;
+  const plotW = W - marginL - marginR, plotH = H - marginT - marginB;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "DFT energy comparison bar chart" });
+
+  const maxVal = 0.30;
+  const yScale = v => marginT + plotH - (v / maxVal) * plotH;
+  const barW = 64, gap = (plotW - barW * dftData.length) / (dftData.length + 1);
+
+  [0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30].forEach(v => {
+    const y = yScale(v);
+    svg.appendChild(el("line", { x1: marginL, x2: W - marginR, y1: y, y2: y, class: v === 0 ? "baseline" : "gridline" }));
+    const t = el("text", { x: marginL - 8, y: y + 3, class: "tick-label", "text-anchor": "end" });
+    t.textContent = fmt(v, 2);
+    svg.appendChild(t);
+  });
+  const yl = el("text", { x: 14, y: marginT + plotH / 2, class: "axis-label", "text-anchor": "middle", transform: `rotate(-90 14 ${marginT + plotH / 2})` });
+  yl.textContent = "ΔE vs ground state (eV / cell)";
+  svg.appendChild(yl);
+
+  const tip = tooltipFor(holder);
+  dftData.forEach((d, i) => {
+    const x = marginL + gap + i * (barW + gap);
+    const yTop = yScale(d.rel);
+    const h = Math.max(2, marginT + plotH - yTop);
+    const color = d.ordering === "FM" ? "var(--series-fm)" : "var(--series-afm)";
+    const rect = el("rect", { x, y: yTop, width: barW, height: h, rx: 4, ry: 4, fill: color });
+    const hit = el("rect", { x, y: marginT, width: barW, height: plotH, fill: "transparent", style: "cursor:pointer" });
+    svg.appendChild(rect);
+
+    const label = el("text", { x: x + barW / 2, y: yTop - 8, class: "bar-label", "text-anchor": "middle" });
+    label.textContent = d.rel === 0 ? "0 (lowest)" : `+${fmt(d.rel, 3)}`;
+    svg.appendChild(label);
+
+    const sub = el("text", { x: x + barW / 2, y: H - marginB + 16, class: "bar-sublabel", "text-anchor": "middle" });
+    sub.textContent = d.calc;
+    svg.appendChild(sub);
+    if (d.labeled) {
+      const flag = el("text", { x: x + barW / 2, y: H - marginB + 29, class: "flag", "text-anchor": "middle" });
+      flag.textContent = "dataset label";
+      svg.appendChild(flag);
+    }
+    svg.appendChild(hit);
+    hit.addEventListener("mousemove", (ev) => {
+      const rect2 = holder.getBoundingClientRect();
+      tip.show(ev.clientX - rect2.left, ev.clientY - rect2.top,
+        `<b>${d.ordering}</b> (${d.calc})<br>TOTEN ${fmt(d.toten, 5)} eV<br>Δ ${fmt(d.rel, 5)} eV vs ground state`);
+    });
+    hit.addEventListener("mouseleave", tip.hide);
+  });
+
+  holder.appendChild(svg);
+
+  const tbl = document.getElementById("table-dft");
+  tbl.innerHTML = "<tr><th>calc</th><th>ordering</th><th>TOTEN (eV)</th><th>Δ vs ground state (eV)</th></tr>" +
+    dftData.map(d => `<tr><td>${d.calc}</td><td>${d.ordering}${d.labeled ? " (label)" : ""}</td><td>${fmt(d.toten, 5)}</td><td>${fmt(d.rel, 5)}</td></tr>`).join("");
+}
+
+// ---------- Spin-dynamics line charts ----------
+function renderLineChart(holder, data, yKey, stdKey, opts) {
+  const W = 320, H = 260, marginL = 44, marginR = 12, marginT = 14, marginB = 34;
+  const plotW = W - marginL - marginR, plotH = H - marginT - marginB;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": opts.ariaLabel });
+
+  const xMin = 0, xMax = 300;
+  const xScale = T => marginL + (T - xMin) / (xMax - xMin) * plotW;
+  const yMin = opts.yMin, yMax = opts.yMax;
+  const yScale = v => marginT + plotH - (v - yMin) / (yMax - yMin) * plotH;
+
+  const xTicks = [0, 100, 200, 300];
+  xTicks.forEach(T => {
+    const x = xScale(T);
+    svg.appendChild(el("line", { x1: x, x2: x, y1: marginT, y2: marginT + plotH, class: "gridline" }));
+    const t = el("text", { x, y: H - marginB + 16, class: "tick-label", "text-anchor": "middle" });
+    t.textContent = T;
+    svg.appendChild(t);
+  });
+  const xl = el("text", { x: marginL + plotW / 2, y: H - 4, class: "axis-label", "text-anchor": "middle" });
+  xl.textContent = "Temperature (K)";
+  svg.appendChild(xl);
+
+  const yTickCount = 4;
+  for (let i = 0; i <= yTickCount; i++) {
+    const v = yMin + (yMax - yMin) * i / yTickCount;
+    const y = yScale(v);
+    svg.appendChild(el("line", { x1: marginL, x2: marginL + plotW, y1: y, y2: y, class: "gridline" }));
+    const t = el("text", { x: marginL - 8, y: y + 3, class: "tick-label", "text-anchor": "end" });
+    t.textContent = fmt(v, opts.decimals);
+    svg.appendChild(t);
+  }
+  svg.appendChild(el("line", { x1: marginL, x2: marginL, y1: marginT, y2: marginT + plotH, class: "baseline" }));
+
+  // reference Tc line
+  const refX = xScale(214);
+  svg.appendChild(el("line", { x1: refX, x2: refX, y1: marginT, y2: marginT + plotH, class: "ref-line" }));
+  const refLabel = el("text", { x: refX + 4, y: marginT + 10, class: "ref-label" });
+  refLabel.textContent = "Tc≈214K";
+  svg.appendChild(refLabel);
+
+  // error band (std) as wash
+  let bandPath = "M";
+  data.forEach((d, i) => { bandPath += `${i === 0 ? "" : "L"}${xScale(d.T)},${yScale(d[yKey] + d[stdKey])} `; });
+  for (let i = data.length - 1; i >= 0; i--) { bandPath += `L${xScale(data[i].T)},${yScale(data[i][yKey] - data[i][stdKey])} `; }
+  bandPath += "Z";
+  svg.appendChild(el("path", { d: bandPath, fill: "var(--series-blue-wash)", stroke: "none" }));
+
+  // line
+  let linePath = "M";
+  data.forEach((d, i) => { linePath += `${i === 0 ? "" : "L"}${xScale(d.T)},${yScale(d[yKey])} `; });
+  svg.appendChild(el("path", { d: linePath, fill: "none", stroke: "var(--series-blue)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+
+  const tip = tooltipFor(holder);
+  data.forEach(d => {
+    const cx = xScale(d.T), cy = yScale(d[yKey]);
+    const dot = el("circle", { cx, cy, r: 3.5, fill: "var(--series-blue)", stroke: "var(--surface-1)", "stroke-width": 2 });
+    const hit = el("circle", { cx, cy, r: 9, fill: "transparent", style: "cursor:pointer" });
+    svg.appendChild(dot);
+    svg.appendChild(hit);
+    hit.addEventListener("mousemove", (ev) => {
+      const rect2 = holder.getBoundingClientRect();
+      const seedNote = d.n > 1 ? ` (± ${fmt(d[stdKey], opts.decimals + 2)}, n=${d.n})` : " (n=1)";
+      tip.show(ev.clientX - rect2.left, ev.clientY - rect2.top,
+        `T=${d.T} K<br>${opts.tooltipLabel}: ${fmt(d[yKey], opts.decimals + 2)}${seedNote}`);
+    });
+    hit.addEventListener("mouseleave", tip.hide);
+  });
+
+  holder.appendChild(svg);
+}
+
+function renderSpinTable() {
+  const tbl = document.getElementById("table-spin");
+  tbl.innerHTML = "<tr><th>T (K)</th><th>seeds</th><th>|m|</th><th>± |m|</th><th>PE/atom (eV)</th><th>± PE/atom</th></tr>" +
+    spinData.map(d => `<tr><td>${d.T}</td><td>${d.n}</td><td>${fmt(d.mag,5)}</td><td>${d.magStd?fmt(d.magStd,5):"—"}</td><td>${fmt(d.pe,6)}</td><td>${d.peStd?fmt(d.peStd,6):"—"}</td></tr>`).join("");
+}
+
+// ---------- Grouped bar chart (accuracy / balanced accuracy per group) ----------
+function renderGroupedBarsImpl(holder, groups, opts) {
+  const W = opts.width || 320, H = 260, marginL = 38, marginR = 12, marginT = 14, marginB = 40;
+  const plotW = W - marginL - marginR, plotH = H - marginT - marginB;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": opts.ariaLabel });
+
+  const maxVal = 1.0;
+  const yScale = v => marginT + plotH - (v / maxVal) * plotH;
+  [0, 0.25, 0.5, 0.75, 1.0].forEach(v => {
+    const y = yScale(v);
+    svg.appendChild(el("line", { x1: marginL, x2: W - marginR, y1: y, y2: y, class: v === 0 ? "baseline" : "gridline" }));
+    const t = el("text", { x: marginL - 6, y: y + 3, class: "tick-label", "text-anchor": "end" });
+    t.textContent = fmt(v * 100, 0) + "%";
+    svg.appendChild(t);
+  });
+
+  const groupW = plotW / groups.length;
+  const barW = Math.min(26, groupW / 3.2);
+  const tip = tooltipFor(holder);
+
+  groups.forEach((g, i) => {
+    const cx = marginL + groupW * (i + 0.5);
+    const x1 = cx - barW - 2, x2 = cx + 2;
+    [["accuracy", "var(--series-afm)", x1], ["balanced", "var(--series-fm)", x2]].forEach(([key, color, x]) => {
+      const v = g[key];
+      const yTop = yScale(v);
+      const h = Math.max(2, marginT + plotH - yTop);
+      const rect = el("rect", { x, y: yTop, width: barW, height: h, rx: 4, ry: 4, fill: color });
+      const hit = el("rect", { x, y: marginT, width: barW, height: plotH, fill: "transparent", style: "cursor:pointer" });
+      svg.appendChild(rect);
+      svg.appendChild(hit);
+      hit.addEventListener("mousemove", (ev) => {
+        const r = holder.getBoundingClientRect();
+        tip.show(ev.clientX - r.left, ev.clientY - r.top,
+          `<b>${g.label}</b>${g.sublabel ? " — " + g.sublabel : ""}<br>${key === "accuracy" ? "accuracy" : "balanced accuracy"}: ${fmt(v * 100, 1)}%${g.n ? `<br>n=${g.n}` : ""}`);
+      });
+      hit.addEventListener("mouseleave", tip.hide);
+    });
+    const lbl = el("text", { x: cx, y: H - marginB + 16, class: "tick-label", "text-anchor": "middle" });
+    lbl.textContent = g.label;
+    svg.appendChild(lbl);
+    if (g.flag) {
+      const flag = el("text", { x: cx, y: H - marginB + 28, class: "flag", "text-anchor": "middle" });
+      flag.textContent = g.flag;
+      svg.appendChild(flag);
+    }
+  });
+
+  holder.appendChild(svg);
+}
+
+// ---------- Horizontal ordinal bar chart (ablation tiers / funnel) ----------
+function renderHBars(holder, items, opts) {
+  const W = 640, rowH = opts.rowH || 46, marginL = opts.labelWidth || 220, marginR = 70, marginT = 8;
+  const H = marginT * 2 + rowH * items.length;
+  const plotW = W - marginL - marginR;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": opts.ariaLabel });
+
+  const maxVal = opts.maxVal;
+  const xScale = v => (v / maxVal) * plotW;
+  const tip = tooltipFor(holder);
+
+  items.forEach((it, i) => {
+    const y = marginT + i * rowH;
+    const barH = Math.min(24, rowH - 16);
+    const w = Math.max(2, xScale(it.value));
+    const label = el("text", { x: marginL - 10, y: y + rowH / 2 + 4, class: "hbar-label", "text-anchor": "end" });
+    label.textContent = it.label;
+    svg.appendChild(label);
+
+    const rect = el("rect", { x: marginL, y: y + (rowH - barH) / 2, width: w, height: barH, rx: 4, ry: 4, fill: "var(--series-blue)" });
+    const hit = el("rect", { x: marginL, y, width: plotW, height: rowH, fill: "transparent", style: "cursor:pointer" });
+    svg.appendChild(rect);
+
+    const valLabel = el("text", { x: marginL + w + 8, y: y + rowH / 2 + 4, class: "hbar-value" });
+    valLabel.textContent = opts.valueFmt(it.value);
+    svg.appendChild(valLabel);
+    if (it.pctPrev !== undefined) {
+      const sub = el("text", { x: marginL + w + 8, y: y + rowH / 2 + 16, class: "hbar-sub" });
+      sub.textContent = `${fmt(it.pctPrev * 100, 1)}% of previous stage`;
+      svg.appendChild(sub);
+    }
+    svg.appendChild(hit);
+    hit.addEventListener("mousemove", (ev) => {
+      const r = holder.getBoundingClientRect();
+      tip.show(ev.clientX - r.left, ev.clientY - r.top, `<b>${it.label}</b><br>${opts.valueFmt(it.value)}`);
+    });
+    hit.addEventListener("mouseleave", tip.hide);
+  });
+
+  svg.appendChild(el("line", { x1: marginL, x2: marginL, y1: 0, y2: H, class: "baseline" }));
+  holder.appendChild(svg);
+}
+
+// ---------- Vertical single-series bar chart (force histogram) ----------
+function renderVBarsSimple(holder, items, opts) {
+  const W = 640, H = 220, marginL = 46, marginR = 16, marginT = 16, marginB = 40;
+  const plotW = W - marginL - marginR, plotH = H - marginT - marginB;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": opts.ariaLabel });
+
+  const maxVal = opts.maxVal;
+  const yScale = v => marginT + plotH - (v / maxVal) * plotH;
+  const ticks = opts.yTicks;
+  ticks.forEach(v => {
+    const y = yScale(v);
+    svg.appendChild(el("line", { x1: marginL, x2: W - marginR, y1: y, y2: y, class: v === 0 ? "baseline" : "gridline" }));
+    const t = el("text", { x: marginL - 8, y: y + 3, class: "tick-label", "text-anchor": "end" });
+    t.textContent = v;
+    svg.appendChild(t);
+  });
+
+  const barW = 100, gap = (plotW - barW * items.length) / (items.length + 1);
+  const tip = tooltipFor(holder);
+  items.forEach((it, i) => {
+    const x = marginL + gap + i * (barW + gap);
+    const yTop = yScale(it.value);
+    const h = Math.max(2, marginT + plotH - yTop);
+    const rect = el("rect", { x, y: yTop, width: barW, height: h, rx: 4, ry: 4, fill: "var(--series-blue)" });
+    const hit = el("rect", { x, y: marginT, width: barW, height: plotH, fill: "transparent", style: "cursor:pointer" });
+    svg.appendChild(rect);
+    const label = el("text", { x: x + barW / 2, y: yTop - 8, class: "bar-label", "text-anchor": "middle" });
+    label.textContent = it.value;
+    svg.appendChild(label);
+    const sub = el("text", { x: x + barW / 2, y: H - marginB + 16, class: "bar-sublabel", "text-anchor": "middle" });
+    sub.textContent = it.label;
+    svg.appendChild(sub);
+    svg.appendChild(hit);
+    hit.addEventListener("mousemove", (ev) => {
+      const r = holder.getBoundingClientRect();
+      tip.show(ev.clientX - r.left, ev.clientY - r.top, `<b>${it.label}</b><br>${it.value} candidates`);
+    });
+    hit.addEventListener("mouseleave", tip.hide);
+  });
+
+  holder.appendChild(svg);
+}
+
+renderDftChart();
+renderLineChart(document.getElementById("chart-mag"), spinData, "mag", "magStd", { yMin: 0, yMax: 0.035, decimals: 3, ariaLabel: "Order parameter vs temperature", tooltipLabel: "|m|" });
+renderLineChart(document.getElementById("chart-pe"), spinData, "pe", "peStd", { yMin: 0, yMax: 0.012, decimals: 4, ariaLabel: "Potential energy per atom vs temperature", tooltipLabel: "PE/atom" });
+renderSpinTable();
+
+renderGroupedBarsImpl(document.getElementById("chart-lgbm-compare"), lgbmCompare, { ariaLabel: "v1 vs v2 accuracy comparison" });
+renderGroupedBarsImpl(document.getElementById("chart-persource"), perSource, { ariaLabel: "Accuracy by source database", width: 640 });
+renderHBars(document.getElementById("chart-ablation"), ablationTiers.map(t => ({ label: t.label, value: t.value })), {
+  ariaLabel: "Feature ablation balanced accuracy", maxVal: 0.75, labelWidth: 0, rowH: 44,
+  valueFmt: v => fmt(v * 100, 1) + "%",
+});
+renderHBars(document.getElementById("chart-funnel"), funnelStages, {
+  ariaLabel: "Candidate screening funnel", maxVal: 1648, labelWidth: 170, rowH: 52,
+  valueFmt: v => v.toLocaleString(),
+});
+renderVBarsSimple(document.getElementById("chart-force"), forceHist, { ariaLabel: "Final max force histogram", maxVal: 200, yTicks: [0, 50, 100, 150, 200] });
+
+document.getElementById("table-lgbm").innerHTML =
+  "<tr><th>group</th><th>accuracy</th><th>balanced accuracy</th><th>n</th></tr>" +
+  lgbmCompare.map(g => `<tr><td>${g.label} (${g.sublabel})</td><td>${fmt(g.accuracy*100,2)}%</td><td>${fmt(g.balanced*100,2)}%</td><td>28,769 train / 7,193 test</td></tr>`).join("") +
+  ablationTiers.map(t => `<tr><td>${t.label}</td><td>—</td><td>${fmt(t.value*100,2)}%</td><td>—</td></tr>`).join("") +
+  perSource.map(s => `<tr><td>source: ${s.label}</td><td>${fmt(s.accuracy*100,2)}%</td><td>${fmt(s.balanced*100,2)}%</td><td>${s.n}</td></tr>`).join("");
+
+document.getElementById("table-funnel").innerHTML =
+  "<tr><th>stage</th><th>candidates</th><th>% of previous</th></tr>" +
+  funnelStages.map(s => `<tr><td>${s.label}</td><td>${s.value.toLocaleString()}</td><td>${s.pctPrev ? fmt(s.pctPrev*100,1)+"%" : "—"}</td></tr>`).join("");
+
+document.getElementById("table-force").innerHTML =
+  "<tr><th>final_max_force bucket</th><th>count</th></tr>" +
+  forceHist.map(f => `<tr><td>${f.label}</td><td>${f.value}</td></tr>`).join("") +
+  `<tr><td>relaxation_energy_per_atom range</td><td>0 – 1.7863 eV/atom (median 0.00088)</td></tr>`;
+</script>

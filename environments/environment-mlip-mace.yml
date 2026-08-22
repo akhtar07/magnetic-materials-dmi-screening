@@ -1,0 +1,21 @@
+# Foundation-MLIP fine-tuning (Phase 3), MACE-MP-0 variant.
+#
+# Deliberately a NEW env, not the existing shared `mlip` conda env (also on this machine,
+# under /home/faiz/softwares/mambaforge3/envs/mlip) -- installing mace-torch there would bump
+# numpy 1.26.4 -> 2.0.2, which risks silently breaking whatever else that shared env is used for.
+#
+# Separate from environment-mlip-mattersim.yml: mace-torch pins e3nn==0.4.4, MatterSim requires
+# e3nn>=0.5.0 -- confirmed unresolvable in one env by an actual failed pip solve. The proposal
+# treats MACE-MP-0 and MatterSim as alternatives ("MACE-MP-0 and/or MatterSim"), never used
+# together in the same script, so two envs is the right shape, not a workaround.
+#
+# Create with:
+#   mamba env create -f environment-mlip-mace.yml
+name: magnetic-mlip-mace
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+      - mace-torch==0.3.15
