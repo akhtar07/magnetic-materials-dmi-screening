@@ -1,0 +1,2 @@
+dft_staging_tight/mp-850225/afm_cstack
+dft_staging_tight/mp-850225/fm_in_cstack

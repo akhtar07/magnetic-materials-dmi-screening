@@ -27,10 +27,21 @@ two tiers of genuinely structural features on top of v1's composition features:
   require dropping or imputing -- the model can use Tier 2 features where available and fall back
   to Tier 1 + v1 composition features elsewhere.
 
+REVISION 2026-09-20 -- Tier 2 for ALL sources. The "MAGNDATA-only" Tier 2 design above had a
+flaw: MAGNDATA is 83% AFM while MP is 65% FM, so "Tier-2 present / absent" was itself a proxy
+for the source and hence for the label. fetch_structures_all.py now downloads the relaxed
+structure of every MP, JARVIS, AFLOW, OQMD and NOMAD record into data/processed/structure_store/
+(gitignored), and attach_structures() below fills the `structure` field from that store before
+features are built -- for training here and for inference in screen_candidates.py alike, so the
+two never disagree. Coverage is printed per source; rows whose structure could not be obtained
+keep NaN (LightGBM missing-value handling) and are counted, not hidden.
+
 Usage:
     python build_features_v2.py
 """
+import gzip
 import json
+from multiprocessing import Pool
 from pathlib import Path
 
 import numpy as np
@@ -147,6 +158,12 @@ def local_structure_features(structure_dict: dict) -> dict:
     if not mag_idx:
         return empty
 
+    # A structure whose sites lie thousands of cells away from the origin (corrupt coordinates;
+    # three NOMAD entries did this on 2026-09-20) makes get_all_neighbors run for hours -- and it
+    # runs in C, so it cannot be interrupted by a Python-level timeout. Refuse it up front.
+    if np.abs(structure.frac_coords).max() > 10:
+        return empty
+
     try:
         neighbors = structure.get_all_neighbors(r=6.0)
     except Exception:
@@ -169,9 +186,45 @@ def local_structure_features(structure_dict: dict) -> dict:
     }
 
 
+STRUCTURE_STORE = ROOT / "data" / "processed" / "structure_store"
+TIER2_COLS = ("n_magnetic_sites", "fraction_magnetic_sites", "mean_magmag_nn_distance",
+              "min_magmag_nn_distance", "std_magmag_nn_distance", "mean_magnetic_coordination")
+
+
+def attach_structures(records: list[dict]) -> dict[str, dict]:
+    """Fill r["structure"] from data/processed/structure_store/*.json.gz (fetch_structures_all.py)
+    for every record that does not already embed one. Returns per-source coverage counts."""
+    store = {}
+    for p in sorted(STRUCTURE_STORE.glob("*.json.gz")) if STRUCTURE_STORE.exists() else []:
+        with gzip.open(p, "rt") as f:
+            store.update({k: v for k, v in json.load(f).items() if "structure" in v})
+    cov = {}
+    for r in records:
+        src = r["source_database"]
+        c = cov.setdefault(src, {"n": 0, "with_structure": 0})
+        c["n"] += 1
+        if r.get("structure") is None and r["material_id"] in store:
+            r["structure"] = store[r["material_id"]]["structure"]
+        c["with_structure"] += r.get("structure") is not None
+    return cov
+
+
+def tier2_features_parallel(structures: list[dict | None], processes: int = 8) -> list[dict]:
+    """local_structure_features() over many records; None -> all-NaN row."""
+    todo = [(i, s) for i, s in enumerate(structures) if s is not None]
+    out = [dict.fromkeys(TIER2_COLS, np.nan) for _ in structures]
+    with Pool(processes) as pool:
+        for i, feats in zip((i for i, _ in todo), pool.imap(local_structure_features, (s for _, s in todo), chunksize=64)):
+            out[i] = feats
+    return out
+
+
 def main():
     with open(ROOT / "data" / "processed" / "harmonized_v2.json") as f:
         records = json.load(f)
+    coverage = attach_structures(records)
+    print("structure coverage after attach_structures():",
+          {k: f"{v['with_structure']}/{v['n']}" for k, v in coverage.items()})
 
     labeled = [r for r in records if r.get("ordering") and r["ordering"] != "Unknown" and r.get("elements")]
     print(f"{len(labeled)} labeled records (excluding null/'Unknown' ordering)")
@@ -193,21 +246,15 @@ def main():
         feats["space_group_number"] = sg
         feats["crystal_system_bucket"] = crystal_system_from_sg(sg)
 
-        # Tier 2: local structure geometry, MAGNDATA-only (NaN elsewhere).
-        if r.get("structure") is not None:
-            feats.update(local_structure_features(r["structure"]))
-            n_with_structure += 1
-        else:
-            feats.update({
-                "n_magnetic_sites": np.nan, "fraction_magnetic_sites": np.nan,
-                "mean_magmag_nn_distance": np.nan, "min_magmag_nn_distance": np.nan,
-                "std_magmag_nn_distance": np.nan, "mean_magnetic_coordination": np.nan,
-            })
-
+        n_with_structure += r.get("structure") is not None
         feats["ordering"] = r["ordering"]
-        rows.append(feats)
+        rows.append((feats, r.get("structure")))
 
-    df = pd.DataFrame(rows)
+    # Tier 2: local structure geometry for every row with a structure (all sources; NaN elsewhere).
+    tier2 = tier2_features_parallel([st for _, st in rows])
+    for (feats, _), t2 in zip(rows, tier2):
+        feats.update(t2)
+    df = pd.DataFrame([f for f, _ in rows])
     out_path = ROOT / "data" / "features" / "baseline_features_v2.csv"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out_path, index=False)

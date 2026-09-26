@@ -1,0 +1,19 @@
+mp-754090 (Li4Fe2TeWO12) Fe-only spin sublattice, primitive cell from mp754090_fe.data; type 1 = Fe0, type 2 = Fe1 (build_mp754090_model.py)
+
+2 atoms
+2 atom types
+
+0.0000000000 5.4127568429 xlo xhi
+0.0000000000 9.0551787660 ylo yhi
+0.0000000000 4.2197964282 zlo zhi
+5.9784858773 5.9762173542 6.1438951979 xy xz yz
+
+Masses
+
+1 55.845
+2 55.845
+
+Atoms # spin
+
+1 1 5.7170688 3.0985315 2.1249165 0.0 0.0 1.0 4.15
+2 2 8.7283759 7.6132516 2.1222285 0.0 0.0 1.0 4.15

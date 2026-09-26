@@ -1,0 +1,4 @@
+dft_staging_tight/mp-1079285/afm_2a std
+dft_staging_tight/mp-1079285/fm_in_2a std
+dft_staging_tight/mp-1079285/afm_2c std
+dft_staging_tight/mp-1079285/fm_in_2c std

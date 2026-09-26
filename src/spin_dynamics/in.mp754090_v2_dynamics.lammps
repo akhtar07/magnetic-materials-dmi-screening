@@ -1,0 +1,66 @@
+# mp-754090 (Li4Fe2TeWO12) Fe-sublattice spin model, REVISED 2026-09-20 (v2).
+#
+# What changed vs in.mp754090_effective.lammps / in.mp754090_dynamics.lammps and why:
+#
+# 1. Exchange constant halved: J = 6.029 meV, not 12.058 meV.
+#    LAMMPS spin/exchange (pair_spin_exchange.cpp, full neighbour list, 0.5 factor per visit)
+#    evaluates E_ex = -sum_{bonds} J(r) s_i.s_j with every bond counted ONCE. Flipping the Fe0
+#    sublattice (the DFT AFM configuration) reverses the 4 inter-sublattice bonds per 2-Fe cell,
+#    so E_AFM - E_FM = 2 * 4 * J = 8 J. With the DFT value dE = 48.23354 meV/cell this gives
+#    J = 6.029 meV. The earlier file used dE / 4 = 12.058 meV, i.e. a model whose FM-AFM energy
+#    difference is 96.5 meV/cell -- twice the DFT number (verified numerically with `run 0` on
+#    the old input: E_AFM - E_FM = 96.46 meV/cell). Every temperature scale of the old sweep is
+#    therefore ~2x too high.
+# 2. The 5.25 A cutoff also captures 2 same-sublattice Fe-Fe bonds per Fe (5.127 A, lattice
+#    translations), which the FM/AFM pair cannot resolve (they are unchanged by the flip). They
+#    are kept with the same J -- an explicit assumption J_intra = J_inter, stated in the paper --
+#    because no cutoff can separate 5.127 A from the 5.112-5.157 A inter-sublattice shell.
+# 3. Ordered (FM, +z) initial state instead of a random start relaxed with spin/lbfgs: the old
+#    protocol left a multi-domain state with |m| = 0.20 already at T = 0, so the sweep's absolute
+#    scale meant nothing. Starting from the ground state and thermalising with Langevin dynamics
+#    gives an |m|(T) whose scale is physical (|m| -> 1 as T -> 0).
+# 4. 4 ps per temperature (2x longer), |m| averaged over the second half, 3 seeds per T.
+#
+# D = 0.193 meV along y, per bond, unchanged (per-bond convention of the DFT extraction matches
+# spin/dmi, which also counts each bond once). Anisotropy still 0 (unknown, not guessed).
+# spin/magelec with zero strength stays as the documented hybrid/overlay segfault workaround.
+
+units           metal
+atom_style      spin
+dimension       3
+boundary        p p p
+atom_modify     map array
+
+read_data       mp754090_fe.data
+replicate       16 8 8
+
+set             group all spin 4.15 0.0 0.0 1.0     # FM ground state along +z (mu_s = 4.15 mu_B)
+
+variable        j_eff_eV equal 0.0060291925          # = 0.04823354 eV / 8
+variable        d_shell equal 5.132075
+variable        exch_a equal v_j_eff_eV*2.718281828/4.0
+variable        rc_exch equal 5.25
+variable        d_eV equal 0.00019324
+variable        rc_dmi equal 5.25
+
+pair_style      hybrid/overlay spin/exchange ${rc_exch} spin/dmi ${rc_dmi} spin/magelec ${rc_exch}
+pair_coeff      * * spin/exchange exchange ${rc_exch} ${exch_a} 0.0 ${d_shell} offset yes
+pair_coeff      * * spin/dmi dmi ${rc_dmi} ${d_eV} 0.0 1.0 0.0
+pair_coeff      * * spin/magelec magelec ${rc_exch} 0.0 1.0 1.0 1.0   # zero strength: segfault workaround only
+
+neighbor        0.3 bin
+neigh_modify    every 10 check yes delay 20
+
+fix             1 all precession/spin zeeman 0.0 0.0 0.0 1.0
+fix_modify      1 energy yes
+fix             2 all langevin/spin ${runtemp} 0.05 ${runseed}
+fix             3 all nve/spin lattice frozen
+
+timestep        0.0001
+
+compute         out_mag all spin
+thermo_style    custom step time pe c_out_mag[4] c_out_mag[5]
+thermo          100
+
+run             40000
+print           "DYNAMICS_T${runtemp}_DONE"

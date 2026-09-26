@@ -1,0 +1,6 @@
+N = 2048 spins, z = 6 neighbours within 5.25 A, 4 colours, J = 5.5672 meV
+T=  10.0 K  |m|=0.6372 +/- 0.0324   E_mag=0.865 meV/site (kT=0.862)
+T=  25.0 K  |m|=0.2311 +/- 0.1024   E_mag=2.202 meV/site (kT=2.154)
+T=  50.0 K  |m|=0.2228 +/- 0.0598   E_mag=4.696 meV/site (kT=4.309)
+T=  75.0 K  |m|=0.1366 +/- 0.0534   E_mag=7.859 meV/site (kT=6.463)
+T= 100.0 K  |m|=0.0706 +/- 0.0269   E_mag=10.842 meV/site (kT=8.617)

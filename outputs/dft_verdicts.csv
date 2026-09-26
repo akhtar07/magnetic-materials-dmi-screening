@@ -1,0 +1,27 @@
+candidate_id,formula,complete,n_calc,n_valid,n_tight_pairs,margin_meV,margin_config,protocol,unresolved,verdict,resolved,label
+mp-1043970,CaLaTaFeO6,True,2,2,1,-0.0975,1_afm,tight,,degenerate,True,CaLaTaFeO6
+mp-1047414,Zn2FeWO6,True,4,4,2,-0.1852,1_afm,tight,,overturned,True,Zn2FeWO6
+mp-1079285,Tb6FeBi2,True,4,4,5,1.2354,2c,tight,,fm_confirmed,True,Tb6FeBi2 (1079285)
+mp-1173139,Ta2FeO6,False,10,9,1,-0.3122,1_afm,tight,3_afm,overturned,True,Ta2FeO6 (1173139)
+mp-1173143,Ta2FeO6,False,12,9,1,-0.4112,7_afm,tight,1_afm;2_afm;3_afm,overturned,True,Ta2FeO6 (1173143)
+mp-1197024,FeBi(SeO3)3,True,4,4,1,-1.194,3_afm,tight,,overturned,True,FeBi(SeO3)3
+mp-1216981,TiFeBiPbO6,True,4,1,4,-1.2976,1_afm,tight,,overturned,True,TiFeBiPbO6
+mp-1217456,Ti4FeBiPb4O15,True,4,4,0,-9.179667600000663,1_afm,loose,,overturned,True,Ti4FeBiPb4O15
+mp-1217946,TaFeO4,True,4,4,0,-8.92157527777826,2_afm,loose,,overturned,True,TaFeO4 (1217946)
+mp-1218521,Sr3TaFeO7,True,4,4,0,-14.028395000000415,2_afm,loose,,overturned,True,Sr3TaFeO7
+mp-1228376,Ba3Fe2WO9,True,4,4,0,-24.681739333333397,2_afm,loose,,overturned,True,Ba3Fe2WO9
+mp-1228547,Ba4Ta10FeO30,True,4,4,1,0.0009,3_afm,tight,,degenerate,True,Ba4Ta10FeO30
+mp-1301722,Ca3Fe2(WO6)2,True,2,2,0,-2.73209736841995,1_afm,loose,,overturned,True,Ca3Fe2(WO6)2
+mp-1343817,CaFeReO6,True,2,2,1,-1.8843,1_afm,tight,,overturned,True,CaFeReO6
+mp-1519427,BaCaFeBiO6,True,3,3,0,-11.741793499999709,2_afm,loose,,overturned,True,BaCaFeBiO6
+mp-1520073,SrCaFeBiO6,True,3,3,0,-11.714875000000013,2_afm,loose,,overturned,True,SrCaFeBiO6
+mp-1522159,BaSrFeBiO6,True,3,3,0,-11.659657500000087,2_afm,loose,,overturned,True,BaSrFeBiO6
+mp-22972,Tb6FeBi2,True,5,5,1,-0.4562,3_afm,tight,,overturned,True,Tb6FeBi2 (22972)
+mp-551086,CrFe(BiO3)2,False,8,6,2,-0.7997,5_fim,tight,2_afm;3_afm,overturned,True,CrFe(BiO3)2
+mp-682554,FeCu4Re14(Mo3S20)2,False,3,2,1,-0.3149,3_afm,tight (provisional),1_afm;1 not run,overturned,True,FeCu4Re14(Mo3S20)2
+mp-754090,Li4Fe2TeWO12,True,2,2,1,2.2269,1_afm,tight,,fm_confirmed,True,Li4Fe2TeWO12
+mp-755203,Li4NbFe(WO6)2,True,4,4,1,-0.5384667500001328,1_afm,loose,,overturned,True,Li4NbFe(WO6)2
+mp-769471,Fe3Co2P6WO24,True,4,4,0,-2.166046111111264,3_afm,loose,,overturned,True,Fe3Co2P6WO24
+mp-775194,Li2Fe3WO8,False,9,8,0,-7.5746450000000465,8_fim,loose,3_afm,overturned,True,Li2Fe3WO8
+mp-850225,FeP6(WO8)3,True,4,4,1,2.9215523529408927,1_afm,loose,,fm_confirmed,True,FeP6(WO8)3
+mp-861559,TaFeO4,True,4,4,0,-7.612569722223128,1_afm,loose,,overturned,True,TaFeO4 (861559)

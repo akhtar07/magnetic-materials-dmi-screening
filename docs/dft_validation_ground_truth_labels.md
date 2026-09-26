@@ -1,5 +1,22 @@
 # DFT magnetic-ordering validation: `ground_truth`-labeled candidates
 
+> **Superseded (2026-09-21):** a per-calculation spin-state audit (`src/dft/audit_spin_states.py`,
+> `outputs/dft_spin_state_audit.csv`) invalidated 14 of the 119 calculations, replacement
+> configurations and same-cell (fixed-lattice, ISIF=2) FM/AFM "tight" pairs were run for the marginal
+> cases (`outputs/dft_tight_validation.csv`), and the verdict rule became asymmetric (any audited
+> competing configuration more than 0.10 meV/atom below FM overturns the label; "confirmed" needs every
+> staged configuration to pass the audit). The current verdict is **26 resolved: 21 overturned
+> (AFM/FiM), 3 FM confirmed, 2 degenerate** (`outputs/dft_verdicts.csv`, `paper/main.tex`); the
+> tight pairs moved margins by up to 1.3 meV/atom relative to the loose pairs, turned mp-1228547 into
+> a degenerate case (+1.18 -> +0.00) and mp-1216981 into an overturn (+0.02 -> -1.30), and of the six
+> loose-only overturns with |margin| < 2 meV/atom re-decided with tight pairs (Batch D, 2026-09-21) all
+> six kept their sign (mp-1173143 -0.41, mp-551086 -0.80, mp-1197024 -1.19, mp-1343817 -1.88, mp-22972 -0.46,
+> mp-682554 -0.31 -- the last one "provisional": the farm was stopped on 21 Sep 22:16 with both 130-atom
+> members 2-3 ionic steps short of EDIFFG (max|F| 0.024/0.036 eV/A, energies stationary to 1e-6 eV);
+> its never-completed 5_afm production run stays "not run" and cannot change the verdict). The
+> text below is the 21 August 2026 snapshot, kept for the record; its "24 of 26" counts include
+> calculations that later failed the audit.
+
 ## Status: snapshot as of 21 August 2026, batch nearly complete
 
 **24 of 26** eligible `ground_truth` candidates from `outputs/phase4_shortlist.csv` have completed

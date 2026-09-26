@@ -38,20 +38,27 @@ ordering, even though MP's automated relaxation workflow initializes every calcu
 ferromagnetic (FM) moment guess and rarely explores antiferromagnetic (AFM) alternatives. We report a
 direct density-functional-theory (DFT) test of this assumption on a structural family --
 noncentrosymmetric, heavy-spin-orbit-coupling-element, net-moment compounds -- selected because it is
-exactly the population that DMI-candidate screening pipelines draw from. Using the same energy-mapping
-protocol as MP's own workflow, we enumerate and converge FM and symmetry-distinct AFM orderings for 24
+exactly the population that DMI-candidate screening pipelines draw from. Using MP's own energy-mapping
+protocol, with documented deviations only where it fails to converge, we enumerate and converge FM and symmetry-distinct AFM orderings for 26
 candidates drawn from a machine-learning-filtered shortlist built on a seven-source, 64{,}635-record
-harmonized materials database. Seventeen of the 24 MP ``ground-truth'' FM labels are overturned by a
-lower-energy AFM state (margins of 0.31--24.68~\meVat), four are confirmed FM, and three are
-degenerate to within electronic-convergence precision. This DFT-level result independently corroborates,
+harmonized materials database; every calculation passes a per-ion spin-state audit or is re-run, and
+marginal cases are re-decided with tight same-cell FM/AFM pairs. Twenty-one of the 26 MP ``ground-truth''
+FM labels are overturned by a lower-energy AFM state (margins of 0.19--24.68~\meVat), three are confirmed
+FM, and two are degenerate to within electronic-convergence precision. This DFT-level result independently corroborates,
 in a materially different and more consequential population, the large-N statistical finding of systematic
 FM bias in MP recently reported from MAGNDATA-trained ML classifiers [Fahmy, arXiv:2509.05909].
 For one confirmed-FM candidate, Li$_4$Fe$_2$TeWO$_{12}$ (mp-754090), we go one step further and extract
-both the isotropic exchange constant ($J=12.06$~meV, from collinear FM/AFM energy mapping) and the DMI
-constant ($D=0.19$~meV, from a constrained noncollinear+spin-orbit canting-angle probe) directly from DFT,
-and use them, unmodified, as inputs to finite-temperature LAMMPS-SPIN dynamics. The resulting
-magnetization decays monotonically with a knee between 150 and 200~K, a physically sensible signal despite
-a known domain-cancellation artifact that suppresses its absolute magnitude. Taken together, these results
+both the isotropic exchange constant ($J=2.78$~meV per Fe--Fe bond on the twelve-neighbor close-packed
+Fe sublattice, from a same-cell FM/AFM energy mapping) and one projection of the DMI vector ($D=0.10$~meV,
+$D/J\approx3.5\%$, from a constrained noncollinear+spin-orbit canting-angle probe) directly from DFT, and use
+the exchange, unmodified, as the input to finite-temperature LAMMPS-SPIN dynamics; for a second confirmed-FM candidate, Tb$_6$FeBi$_2$ (mp-1079285), constrained
+spin spirals resolve both symmetry-allowed components of the Fe-chain DMI vector ($|D|=0.10$~meV per bond,
+$D/J\approx0.7\%$). Starting from the ordered ground state, the Fe-sublattice magnetization of mp-754090 falls from
+$|m|=0.97$ at 10~K to the finite-size floor above 125~K, and a Binder-cumulant crossing over four system
+sizes (256--4000 spins) places the ordering temperature of the model at $101\pm1$~K, matching the
+classical-Heisenberg fcc estimate ($\approx$103~K) for the same $J$ and falling 22\% below mean field
+($\approx$129~K, which therefore overestimates it by 28\%); the curve is reproduced by an independent Monte Carlo calculation. The three-shell model of mp-1079285
+($zJ=52.6$~meV) gives a crossing at $139\pm3$~K. Taken together, these results
 argue that MP's ordering label should be treated as a screening prior rather than ground truth for exactly
 the structural family that DMI-material discovery pipelines target, and they demonstrate what a full,
 DFT-grounded verification of one candidate costs and returns.
@@ -92,7 +99,7 @@ family that DMI-candidate screening pipelines actually select -- noncentrosymmet
 net magnetic moment, and a heavy spin-orbit-coupling element present -- how often is MP's stored FM label
 the true DFT ground state? We build a seven-source harmonized materials database and a bias-aware
 magnetic-ordering classifier, use them to filter for DMI-compatible candidates, and then run the same
-collinear energy-mapping protocol MP itself prescribes~\cite{horton2019} on 24 of the resulting shortlisted
+collinear energy-mapping protocol MP itself prescribes~\cite{horton2019} on 26 of the resulting shortlisted
 candidates. The result is a direct, per-compound DFT verdict rather than a statistical classifier
 disagreement, obtained specifically in the population most consequential for DMI-material discovery. We
 then carry one confirmed-FM candidate, Li$_4$Fe$_2$TeWO$_{12}$ (mp-754090), through a full pipeline: DFT
@@ -112,9 +119,18 @@ for 64{,}635 total records. Records retain a source tag rather than being silent
 sources. MAGNDATA is the only source with experimentally determined (rather than DFT-derived) magnetic
 structure, and is accordingly the ground-truth source for classifier training and validation. A new
 end-to-end scraper against the live Bilbao Crystallographic Server index recovered 1{,}919 of 2{,}414
-entries (79.5\%); the 495 failures are almost entirely (466 of 495) disordered or partial-occupancy
-structures that standard CIF parsing cannot represent, an upstream data-format limitation rather than a
-scraper defect. Ordering was validated on a known case (LaMnO$_3$, correctly recovered as AFM, space group
+entries (79.5\%). The 495 failures break down as 449 HTTP 404s from the server's temporary
+\texttt{.mcif} endpoint, 41 structures the parser refuses (36 explicitly disordered, 5 incommensurate),
+3 read timeouts, and 2 entries whose fetched CIF contained no structure. Within the 404s, 148 are entries
+whose formula carries fractional site occupancies and 3 carry HTML markup in the upstream formula string,
+which makes the request URL malformed; those 151, together with the 41 refusals, are the at most 192
+entries attributable to a data-format limitation. The remaining 298 are 404s on well-formed URLs for
+integer-stoichiometry entries, and they are transient rather than permanent: they persist across the
+scraper's four in-run retries, but re-requesting one of them (entry 0.57, ScFeO$_3$) returned 404 and then
+200 within minutes, while its entry page is served throughout. 79.5\% is therefore a property of this run
+rather than a ceiling, and a slower retry campaign should recover most of the 298. Nothing below depends on the missing entries, all of which are simply
+absent from the training and validation sets, but the MAGNDATA ground truth used here is smaller than the
+source allows. Ordering was validated on a known case (LaMnO$_3$, correctly recovered as AFM, space group
 $Pnma$).
 
 \subsection{Structure-aware magnetic-ordering classifier}
@@ -123,14 +139,39 @@ A LightGBM classifier predicts ordering (FM/AFM/FiM/NM) from composition- and st
 composition-only baseline (per-element statistics of atomic number, mass, electronegativity, atomic radius,
 plus group/period/transition-metal/rare-earth fractions) achieves 56.7\% accuracy (60.7\% balanced
 accuracy). Adding two tiers of structural features -- broad, near-universal-coverage fields (space group
-number, crystal-system bucket, unit-cell volume, site count) and narrow, MAGNDATA-only local-geometry
-features around magnetic sites (nearest magnetic-magnetic neighbor distance, coordination number, computed
-from atomic positions and species only, never from the magnetic-moment vectors that generate the label
-itself) -- raises this to 67.0\% accuracy (68.1\% balanced accuracy) on a stratified 28{,}769/7{,}193
-train/test split. Both feature tiers contribute independently, and space-group number becomes the single
-most important feature by LightGBM gain, despite being absent from the baseline entirely. This classifier
-is retrained on all labeled data and deployed to predict ordering for every record lacking a ground-truth
-label, including all 19{,}116 JARVIS records, none of which carry a populated ordering field.
+number, crystal-system bucket, unit-cell volume, density, site count) and local-geometry features around
+magnetic sites (nearest magnetic--magnetic neighbor distance, magnetic coordination number, fraction of
+magnetic sites; computed from atomic positions and species only, never from the magnetic-moment vectors
+that generate the label itself) -- raises this to 67.4\% accuracy (68.0\% balanced accuracy) on a
+stratified 28{,}769/7{,}193 train/test split (Fig.~\ref{fig:classifier}). In the first version of this pipeline the local-geometry
+tier was computed only for MAGNDATA, whose CIFs carry atomic positions inline; every other source was
+represented by its metadata alone. Because MAGNDATA is the one source whose labels are experimental and
+83\% AFM, a ``Tier-2 present'' pattern then acted as a proxy for the source database rather than for
+geometry. We therefore fetched structures for every source with a public structure endpoint (Materials
+Project 37{,}783/37{,}783, JARVIS 19{,}116/19{,}116, AFLOW 2{,}637/2{,}639, NOMAD 495/500, 2DMatPedia
+1{,}862/1{,}862; OQMD 0/816 because its REST endpoint was unreachable throughout this revision) and
+recomputed the tier for all of them. The change leaves the headline numbers essentially unchanged (67.0\%
+$\to$ 67.4\% accuracy, 68.1\% $\to$ 68.0\% balanced) but moves the model's reliance where it belongs:
+per-source test accuracy on Materials Project rises from 65.6\% to 66.9\% (balanced 63.0\% $\to$ 65.9\%),
+while the inflated MAGNDATA figure drops from 89.5\% to 75.8\%, and four local-geometry features
+(mean/std/min magnetic--magnetic distance, mean magnetic coordination) enter the top seven features by
+LightGBM split importance, where before none appeared in the top ten (Fig.~\ref{fig:classifier}b). Space-group number remains the single most
+important feature, despite being absent from the baseline entirely. This classifier is retrained on all
+labeled data and deployed to predict ordering for every record lacking a ground-truth label, including all
+19{,}116 JARVIS records, none of which carry a populated ordering field.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_classifier.pdf}
+\caption{Structure-aware ordering classifier on the held-out test set (7{,}193 records, stratified 80/20
+split). (a) Row-normalised confusion matrix (counts in parentheses): the dominant confusion is FM~$\to$~FiM
+and FiM~$\to$~FM, i.e.\ between the two net-moment classes that the screening funnel treats identically,
+whereas AFM and NM are recovered at 71\% and 76\%. (b) The fifteen most-used features by LightGBM split
+count; the six Tier-2 local-magnetic-geometry features (red), computed from atomic positions and species
+only, now sit alongside the space-group and density/volume descriptors instead of acting as a MAGNDATA
+source flag.}
+\label{fig:classifier}
+\end{figure*}
 
 \subsection{DMI-compatibility screening funnel}
 
@@ -142,13 +183,61 @@ inversion center~\cite{moriya1960}; verified computationally against all 230 spa
 textbook 92 centrosymmetric / 138 noncentrosymmetric split), presence of at least one heavy
 spin-orbit-coupling element (Ta, W, Re, Os, Ir, Pt, Au, Hg, Bi -- the classic DMI-enhancing species by the
 Fert--Levy and Moriya mechanisms~\cite{fert1980,moriya1960}), and thermodynamic plausibility
-($E_\mathrm{hull} \le 0.1$~eV/atom where known, 92.6\% coverage). Of 64{,}635 records, 1{,}647 pass the
-full funnel. For the top 100 screened candidates per source, structures were backfilled via each source's
-own public data-access method (299 of 300 attempted backfills succeeded) and re-relaxed with a MACE
+($E_\mathrm{hull} \le 0.1$~eV/atom where known). Of 64{,}635 records, 47{,}614 carry a net-moment
+ordering, 19{,}280 of those are noncentrosymmetric, and 1{,}864 also contain a heavy-SOC element
+(Materials Project 768, JARVIS 537, AFLOW 392, 2DMatPedia 77, NOMAD 53, OQMD 35, MAGNDATA 2;
+Fig.~\ref{fig:funnel}). A hull energy is known for 1{,}340 of them (the MP, JARVIS and OQMD records), 671 of which lie within
+0.1~eV/atom of it. Two revisions to this step were made during the present audit. First, the
+\texttt{ehull} field of the JARVIS-DFT snapshot used here is not a hull distance (its median over the
+93{,}902-entry snapshot is 1.7~eV/atom, the known stable compound TbMnSi carries
+\texttt{ehull}$=2.45$~eV/atom, and 101 of the 3{,}206 harmonized JARVIS records with a \emph{positive}
+formation energy carry \texttt{ehull}$=0$ --- among them BaFeHg$_4$ at $+0.36$~eV/atom, which is how the
+inconsistency was found); it was therefore discarded and the hull distance of every JARVIS record recomputed
+from JARVIS's own OptB88vdW formation energies with a per-chemical-system convex hull (13{,}967 of 19{,}116
+records within 0.1~eV/atom). Three of the four JARVIS entries in the original top-30 shortlist fail this
+recomputed criterion (Mg$_6$FeBi 0.13, BaFeHg$_4$ 0.36, Ba$_4$ScHg 0.54~eV/atom); none of them entered the
+DFT batch, which is Materials Project only. Second, the hull criterion is now available as a hard
+filter: dropping every record with a \emph{known} hull distance above 0.1~eV/atom (records from sources
+that provide no hull energy -- AFLOW, NOMAD, 2DMatPedia, MAGNDATA -- are retained rather than penalised for
+a missing field) leaves 1{,}195 candidates. All 26 candidates of the DFT batch survive the hard filter,
+and the original ranking from which that batch was drawn, in which the hull acted as a sort key rather than
+an exclusion, is kept alongside it so the batch remains reproducible; because the hard-filtered ranking
+orders stable records by hull distance first, the same 26 candidates spread from rank 1 to rank 663 under
+it, i.e.\ the DFT batch is not a sample of the funnel's most stable members (Fig.~\ref{fig:hull}).
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_funnel.pdf}
+\caption{The DMI-compatibility screening funnel by source database. (a) Each successive criterion --
+net-moment ordering (ground-truth label where present, otherwise the deployed classifier's prediction),
+noncentrosymmetric space group, and at least one heavy spin-orbit-coupling element -- applied to the
+64{,}635-record harmonized database. (b) The 1{,}864 survivors, the 1{,}195 that remain when a known hull
+distance above 0.1~eV/atom is used as a hard exclusion (sources without a hull field are retained), and the
+26-candidate DFT batch, which is Materials Project only.}
+\label{fig:funnel}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_hull_landscape.pdf}
+\caption{Thermodynamic stability of the funnel survivors. (a) Distribution of the hull distance for the
+1{,}340 survivors that carry one (Materials Project and OQMD as stored; JARVIS recomputed from its own
+formation energies, see text), with the 0.1~eV/atom hard filter and the three JARVIS entries of the original
+top-30 shortlist that it removes; red ticks mark the 26 DFT-batch candidates. (b) Hull distance versus rank
+in the hard-filtered ordering, which sorts stable records by hull distance first: the DFT batch (red) spans
+ranks 1--663, so it is a sample of the funnel's DMI-compatible population, not of its most stable members.}
+\label{fig:hull}
+\end{figure*}
+For the top 100 screened candidates per source, structures were backfilled via each source's
+own public data-access method (298 of 300 attempted backfills succeeded; two AFLOW records failed on
+repeated TLS errors from the AFLUX endpoint) and re-relaxed with a MACE
 foundation-model potential~\cite{batatia2022}, fine-tuned on this project's harmonized dataset via multihead
 training (a replay head sampling 20{,}000 configurations from the original pretraining distribution to
 avoid catastrophic forgetting), as an independent consistency check against each source's own DFT
-relaxation. All 298 relaxations converged (max force $\le 0.05$~eV/\AA) with a median relaxation-energy
+relaxation. The base model is MACE-MP-0 \texttt{small} (\texttt{num\_channels}$=128$, \texttt{max\_L}$=1$,
+two interaction layers, $r_\mathrm{max}=5.0$~\AA); the relaxations use the Stage-2/SWA checkpoint of the
+fine-tune with its default head, and are static FIRE optimizations in ASE (no molecular dynamics anywhere
+in this work). All 298 relaxations converged (max force $\le 0.05$~eV/\AA) with a median relaxation-energy
 shift of 0.0009~eV/atom relative to the source structure, indicating strong agreement between the
 fine-tuned potential and each source's own DFT. Classifier confidence and MACE relaxation-consistency were
 merged into a final ranking (converged $\to$ hull-stable $\to$ smallest relaxation shift $\to$ classifier
@@ -163,32 +252,88 @@ own workflow~\cite{horton2019}: symmetry-distinct FM and AFM spin configurations
 \texttt{pymatgen.MagneticStructureEnumerator} (backed by \texttt{enumlib}); VASP inputs are generated with
 \texttt{MPRelaxSet} -- MP's own exchange-correlation functional, GGA+U parameters (e.g. LDAUU$=5.3$~eV on
 Fe), plane-wave cutoff (520~eV), and $k$-point convention -- overriding only the initial MAGMOM per
-configuration; and each configuration is relaxed to convergence. This choice keeps the resulting energies
-directly comparable to MP's own stored values rather than constituting an arbitrary independent DFT recipe.
-Twenty-four candidates completed (85 individual VASP calculations, every one converged, verified against
-false electronic convergence by inspecting the RMS charge-density residual rather than trusting the
-convergence banner alone); two further candidates (mp-1173143, mp-682554) remain incomplete at the time of
-writing, with only their FM configuration converged, and are excluded from the analysis below.
+configuration; and each configuration is relaxed to convergence (VASP~6.4.3; \texttt{MPRelaxSet}
+defaults ISIF$=3$, ISMEAR$=-5$, EDIFF$=5\times10^{-5}$~eV per atom, i.e.\ 0.05~\meVat). This choice keeps
+the resulting energies directly comparable to MP's own stored values rather than constituting an arbitrary
+independent DFT recipe. Beyond VASP's own convergence flag, every calculation was audited in two further
+ways: the final RMS charge-density residual was checked (the ``EDIFF is reached'' banner can fire on a
+transient while the density is still far from self-consistent), and the final per-ion moments were compared
+against the intended MAGMOM pattern and against the moment magnitudes of the FM calculation of the same
+compound. The second check matters: a configuration whose magnetic ions collapse to a low-spin or
+nonmagnetic state, or whose moments re-order into the FM pattern during the SCF cycle (a doubled ``AFM''
+cell that is really FM), passes VASP's convergence test but is not a sample of the ordering it was labeled
+with, and is excluded from the verdict rather than counted.
+
+The first pass (93 relaxations across the 26 candidates; 116 audited relaxations in total once the
+second batch below is included) left 12 calculations in seven candidates that
+failed the spin-state audit: collapsed or low-spin Fe/Cr moments in an AFM configuration (mp-1173139,
+mp-1173143, mp-551086, mp-775194), ``AFM'' cells whose moments re-ordered to the FM pattern during the SCF
+cycle (mp-682554), an ``AFM'' pattern that had flipped only a nonmagnetic $d^0$ Ti site and was therefore FM
+in disguise (mp-1216981, whose apparent zero margin in an earlier draft was an artefact of exactly this),
+and an FM reference that collapsed to a nonmagnetic state (mp-22972). Rather than discarding these
+candidates, a second batch replaced every failed configuration with a freshly enumerated one in a spin state
+that the audit accepts: additional symmetry-distinct AFM/FiM cells for mp-1173139, mp-1173143, mp-775194 and
+mp-551086 (the ferrimagnetic ones with the two Fe sublattices, or Fe and Cr, unequal in number), Fe-only AFM
+supercells for mp-1216981 (Ti excluded from the enumeration), anti-collapse FM reruns for mp-22972 (in the
+primitive cell and in the cell of its lowest AFM configuration), and, for mp-682554, whose $1\times1\times2$
+Fe--Fe stacking (130 atoms, 27.9~\AA{} between the two Fe sites) diverged twice at the first density-mixing
+step through charge sloshing, five single-point mixer/smearing variants of the same cell run side by side,
+with the production relaxation restarted only under the first variant that converged. A superseded attempt
+(a diverged or collapsed run that was re-done) is neither a sample nor a gap in the count.
+
+Two protocol effects turned out to matter at the sub-meV/atom level. First, the MP recipe compares an FM
+relaxation in the primitive cell with AFM relaxations in supercells, each with its own $k$-mesh and each
+relaxed with ISIF$=3$ to its own cell shape; for the sixteen configurations run both ways this ``loose''
+margin differs from a ``tight'' one (both orderings relaxed with ISIF$=2$ in the same relaxed AFM cell,
+identical $k$-mesh, EDIFF$=10^{-6}$~eV, EDIFFG$=-0.01$~eV/\AA) by up to 1.3~\meVat\ in either direction
+(Ba$_4$Ta$_{10}$FeO$_{30}$: $+1.18\to0.00$; FeP$_6$(WO$_8$)$_3$: $+2.09\to+3.38$). Every candidate whose
+verdict rested on a loose margin smaller than about 2~\meVat\ was therefore re-decided with a tight pair
+built in the cell of its lowest valid non-FM configuration (14 pairs in the first tight batch, 6 more for
+the remaining small-margin overturns), and a tight number replaces the loose one for that configuration
+wherever it exists. Second, the verdict rules are asymmetric by construction: a label is \emph{overturned}
+as soon as one audited configuration lies more than 0.10~\meVat\ below FM -- a still-missing configuration
+cannot undo that -- whereas \emph{confirmed FM} and \emph{degenerate} require every staged configuration
+to have a valid energy. The 0.10~\meVat\ window is twice the per-atom EDIFF of the loose protocol.
 
 All five tungsten-bearing candidates in this batch initially failed to converge under MP's standard Hubbard
 correction (LDAUU$=6.2$~eV on W): tungsten here is formally W$^{6+}$, a nominally $d^0$ ion, and a large $U$
 applied to a near-empty $d$-shell leaves the self-consistent density with no restoring force, oscillating
 indefinitely rather than converging. Removing $U$ from tungsten (LDAUL$=-1$) entirely, applied uniformly
 across every ordering of the affected compound, converged all 18 corresponding production calculations
-cleanly on the first retry. This changes the absolute energy scale for those five candidates relative to
+cleanly on the first retry. These reruns also fix the cell shape and volume at MP's relaxed values
+(ISIF$=2$, ions only) and use Gaussian smearing (ISMEAR$=0$, $\sigma=0.05$~eV; tetrahedron smearing for
+mp-755203) for SCF stability. This changes the absolute energy scale for those five candidates relative to
 MP's own U-inclusive value, but not the internal FM-vs-AFM comparison within each compound, since the same
-correction is applied to every ordering of that compound identically.
+settings are applied to every ordering of that compound identically.
 
 \subsection{Exchange and DMI extraction for mp-754090}
 
 For Li$_4$Fe$_2$TeWO$_{12}$ (mp-754090), confirmed FM by the protocol above, we additionally extract
 effective spin-Hamiltonian parameters directly from DFT. The isotropic nearest-shell exchange constant is
-obtained from the same converged FM/AFM total energies used for the ordering verdict: the two Fe sites
-(Fe0, Fe1) per formula-unit cell have a $z=4$ nearest opposite-sublattice coordination shell at
-5.11--5.16~\AA{} (mean 5.132~\AA), cleanly separated from the next shell (starting 5.411~\AA); for
-$H=-\sum_{ij} J'_{ij}\,\hat{s}_i\!\cdot\!\hat{s}_j$, the AFM-vs-FM energy difference per cell gives
-$J' = \Delta E / z = 12.06$~meV, treating the shell as one effective bond (a mean-field-style single-$J$
-fit, not a multi-shell decomposition).
+obtained from the tight same-cell FM/AFM pair used for the ordering verdict (both orderings relaxed in the
+same cell, which is the fixed lattice a Heisenberg $J$ is defined on). The Fe sublattice of the
+rock-salt-derived Li$_4$Fe$_2$TeWO$_{12}$ structure is close-packed: each of the two Fe sites (Fe0, Fe1)
+per formula-unit cell has twelve Fe neighbors, six in a triangular layer (5.112--5.157~\AA, bond angles
+of $60^\circ$, $120^\circ$ and $180^\circ$; four on the opposite sublattice and two on the same sublattice by
+lattice translation) and six across the 4.53~\AA{} layer spacing (5.411--5.427~\AA; again four on the
+opposite sublattice and two on the same). The next shell starts at 7.45~\AA. For
+$H=-\sum_{\langle ij\rangle} J\,\hat{s}_i\!\cdot\!\hat{s}_j$ with each bond counted once, the collinear AFM
+configuration (Fe0 sublattice reversed) flips the eight inter-sublattice bonds per cell -- four in-plane and
+four inter-layer -- so $E_\mathrm{AFM}-E_\mathrm{FM} = 2\times8\,J = 16J$; with the same-cell DFT value
+$\Delta E = 44.54$~meV per two-Fe cell this gives $J = \Delta E/16 = 2.78$~meV per bond. The loose pair
+(each ordering at its own ISIF$=3$ optimum) gives $\Delta E = 48.23$~meV and $J=3.01$~meV, an 8\%
+protocol spread that we carry as the systematic uncertainty of $J$. (Two earlier versions of this
+analysis were wrong in ways worth recording: one quoted $J=\Delta E/4$, double-counting the flipped bonds;
+the next used a 5.25~\AA{} neighbor cutoff that keeps only the six coplanar in-plane bonds and drops the
+six inter-layer ones, so that $\Delta E = 8J$ and $J=5.57$~meV -- the correct sum of an in-plane and an
+inter-layer bond, but on a lattice of \emph{uncoupled} two-dimensional triangular layers, which has no
+long-range order at any finite temperature and gave a spurious $|m|(T)$ once the spin dynamics were
+properly equilibrated. The spin dynamics reported below use the twelve-neighbor model.) A single FM/AFM
+pair cannot separate the in-plane from the inter-layer exchange, nor resolve the four same-sublattice
+bonds, which are invisible to a two-configuration fit; all twelve bonds are assigned the same $J$ in the
+spin model -- an explicit assumption. This is a single-$J$ effective model, not a multi-shell
+decomposition; its $zJ = 12J = 33.4$~meV, which fixes the mean-field ordering temperature, is what the DFT
+pair determines directly.
 
 DMI does not appear in a collinear FM-vs-AFM comparison at all; it requires spins canted relative to one
 another. We first checked whether mp-754090's crystal symmetry forces $D=0$ via Moriya's rule (an inversion
@@ -201,58 +346,176 @@ Fe0 along $+\hat{z}$ and Fe1 along $+\hat{x}$ (canted$_+$) or $-\hat{x}$ (canted
 90^\circ$ canting in the $xz$-plane, an arbitrary but fixed reference axis since $P1$ symmetry does not
 privilege any particular plane. The moment constraint held essentially exactly in both calculations (Fe1
 converged to $4.038\,\mu_B$ along $x$ in canted$_+$ and $-4.039\,\mu_B$ in canted$_-$; Fe0 leakage off
-$z$ was $<0.002\,\mu_B$ in both). For $E(\theta) = E_0 - zJ\cos\theta - zD\sin\theta$, comparing
-$\theta=\pm90^\circ$ isolates the antisymmetric term cleanly since $\cos(\pm90^\circ)=0$:
+$z$ was $<0.002\,\mu_B$ in both). With the same bond-counting convention as for $J$ ($z=8$
+inter-sublattice bonds per cell, each counted once; the four same-sublattice bonds connect parallel spins
+and contribute neither to the $\cos\theta$ nor to the $\sin\theta$ term), $E(\theta) = E_0 - zJ\cos\theta -
+zD\sin\theta$, and comparing $\theta=\pm90^\circ$ isolates the antisymmetric term cleanly since
+$\cos(\pm90^\circ)=0$:
 \begin{equation}
 zD = \frac{E(\theta{=}-90^\circ) - E(\theta{=}+90^\circ)}{2},
 \end{equation}
-giving $D = 0.193$~meV. Because $\hat{s}_1=\hat{z}$ and the canting is confined to the $xz$-plane,
-$\hat{s}_1\times\hat{s}_2 = (0,\sin\theta,0)$: this probe measures the $y$-component of the DMI vector in
-this lab frame specifically, not a generic magnitude, and should be read as a resolved DFT number for one
-projection of $D$ rather than a fully characterized three-dimensional DMI vector.
+giving $E(-90^\circ)-E(+90^\circ)=1.546$~meV per cell and $D = 0.097$~meV per bond, i.e.\ $D/J \approx
+3.5\%$. Because $\hat{s}_1=\hat{z}$ and the canting is confined to the $xz$-plane,
+$\hat{s}_1\times\hat{s}_2 = (0,\sin\theta,0)$: this probe measures the mean $y$-component of the DMI
+vectors of the eight inequivalent inter-sublattice bonds in this lab frame specifically, not a generic
+magnitude, and should be read as a resolved DFT number for one projection of $D$ rather than a fully
+characterized three-dimensional DMI vector. Since the ratio $D/J$ is the physically meaningful quantity,
+it is unchanged by the bond-count correction above.
+
+\subsection{Exchange and DMI extraction for mp-1079285}
+\label{sec:1079285methods}
+
+The second confirmed ferromagnet, Tb$_6$FeBi$_2$ (mp-1079285, space group $Pm$, one Fe per
+primitive cell), is a different magnetic topology: the Fe atoms form chains along $b$ (Fe--Fe
+4.198~\AA), the next Fe--Fe distances being 8.396~\AA{} along $\pm2b$ (chain next-nearest
+neighbours) and 8.396--8.407~\AA{} to the six chain neighbours along $\pm a$, $\pm c$, $\pm(a+c)$.
+Tb is treated with the $4f$ electrons frozen in the core (\texttt{Tb\_3} PAW), so the only moment
+in the model is Fe ($1.68\,\mu_B$ in the FM calculation), an explicit approximation that ignores any
+Tb--Fe exchange. Every collinear AFM configuration that the enumeration produced for this candidate
+turned out to be the same chain-antiparallel order in a different cell setting, so the tight pair in
+the $1\times2\times1$ cell resolves only the intra-chain coupling: with $H=-\sum_{\langle
+ij\rangle}J_{ij}\,\hat{s}_i\!\cdot\!\hat{s}_j$ (each bond counted once) it flips two chain bonds per
+cell, $E_\mathrm{AFM}-E_\mathrm{FM}=4J_b$. A chain model alone has no order at any $T>0$, so three
+further same-cell tight pairs were staged in supercells of the relaxed FM cell (\texttt{ISIF}$=2$,
+\texttt{EDIFF}$=10^{-6}$~eV, \texttt{EDIFFG}$=-0.01$~eV/\AA): the $2a$ and $2c$ cells with the two Fe
+antiparallel, which flip the $\pm a,\pm(a+c)$ and the $\pm c,\pm(a+c)$ bonds respectively
+($\Delta E_{2a}=4(J_a+J_{ac})$, $\Delta E_{2c}=4(J_c+J_{ac})$), and a $1\times4\times1$ cell with the
+chain pattern $++--$, which flips two of the four chain bonds and all four $\pm2b$ bonds
+($\Delta E_{4b}=4J_b+8J_{2b}$). Two equations do not determine three inter-chain couplings; the
+model takes their mean, $J_\perp=(\Delta E_{2a}+\Delta E_{2c})/16$, under the stated assumption
+$J_a\approx J_c\approx J_{ac}$ (the three bond lengths agree to 0.01~\AA). The $\pm2b$ bond is
+resolved separately because its length coincides with the inter-chain shell, which no radial
+exchange function in the spin-dynamics code can separate (Sec.~\ref{sec:spindyn}).
+
+The DMI vector of the chain bond is constrained by symmetry: the $Pm$ mirror plane is normal to $b$
+and contains the Fe site, so by Moriya's rules $\mathbf{D}\perp b$ and two projections determine
+$|\mathbf{D}|$. Each was obtained from a pair of $90^\circ$ spin spirals in the $1\times4\times1$
+cell (four Fe, moments constrained with \texttt{I\_CONSTRAINED\_M}$=1$, $\lambda=10$, spin-orbit
+coupling on, \texttt{EDIFF}$=10^{-7}$~eV, single points on the relaxed FM structure), rotating in
+the plane normal to $\hat{n}_1\parallel a$ or $\hat{n}_2=\hat{b}\times\hat{n}_1$ with
+either chirality. For a $90^\circ$ spiral $\hat{s}_i\times\hat{s}_j=\pm\hat{n}$ on every chain
+bond while the symmetric exchange (including $J_{2b}$, whose bonds are antiparallel in both
+chiralities) is identical for the two, so $\mathbf{D}\!\cdot\!\hat{n}=[E(+)-E(-)]/8$ per bond. The
+constraint penalty energies were $\le1.6\times10^{-9}$~eV, the Fe moments had no component off
+their target axes (to the printed $0.001\,\mu_B$) with $|m_\mathrm{Fe}|=1.50\pm0.01\,\mu_B$ in all
+four calculations, and the induced Tb moments ($\le0.123\,\mu_B$; Bi $\le0.002\,\mu_B$) rotate with
+the spiral, their magnitudes agreeing between chiralities to $0.001\,\mu_B$.
 
 \subsection{Finite-temperature spin dynamics}
+\label{sec:spindyn}
 
-The DFT-derived $J=12.06$~meV and $D=0.193$~meV, with no fitting or rescaling, parameterize an
-exchange$+$DMI atomistic spin Hamiltonian for the Fe sublattice of mp-754090 (framework Li/Te/W/O sites
-carry no spin and are omitted from the geometry), implemented in LAMMPS-SPIN~\cite{tranchida2018} via
-\texttt{spin/exchange} and \texttt{spin/dmi} pair styles on a $16\times8\times8$ replication (2048 spins) of
-the two-atom Fe primitive cell, with periodic boundaries and a rigid (spin-only) lattice. The system is
-initialized with random spin orientations (a paramagnetic start), relaxed at $T=0$ with a spin-LBFGS
-minimizer, then evolved under Langevin spin dynamics (damping 0.05, $dt=0.1$~fs) at ten temperatures from
-10 to 400~K for 20{,}000 steps (2~ps) each, tracking the normalized net magnetization $|m|$.
+The DFT-derived $J=2.78$~meV, with no fitting or rescaling, parameterizes a twelve-neighbor Heisenberg
+Hamiltonian for the Fe sublattice of mp-754090 (framework Li/Te/W/O sites carry no spin and are omitted
+from the geometry), implemented in LAMMPS-SPIN~\cite{tranchida2018} via the \texttt{spin/exchange} pair
+style (which counts each bond once, matching the convention of the DFT extraction) with a 5.5~\AA{} cutoff
+that captures all twelve Fe--Fe bonds per site. \texttt{spin/exchange} uses the Bethe--Slater radial form
+$J(r)=4a\,(r/d)^2 e^{-(r/d)^2}$ (with its $b$ parameter set to zero); $d=5.274$~\AA{} is solved so that
+$J(5.130~\text{\AA})=J(5.418~\text{\AA})$ exactly and $a$ set so that both equal the DFT $J$, which makes
+$J(r)$ constant to within 0.06\% over the two shells. A zero-step energy evaluation of the FM and
+Fe0-reversed configurations of the model reproduces the DFT $E_\mathrm{AFM}-E_\mathrm{FM}=16J=44.54$~meV
+per cell to 0.003\%. The DMI is not included in the production sweep, for a reason that is itself a
+result: the LAMMPS \texttt{spin/dmi} pair style implements $\mathbf{D}_{ij} = D\,(\hat{e}_{ij}\times\hat{v})$
+with a single global vector $\hat{v}$, and for the DFT probe geometry ($\hat{s}_i\times\hat{s}_j=\pm\hat{y}$)
+its energy difference is $D\,(\hat{v}\times\hat{y})\cdot\sum_b\hat{e}_b$ over the eight inter-sublattice bond
+directions -- a sum that is 0.03 (in units of a bond vector) for this near-centrosymmetric neighbor shell,
+so no choice of $\hat{v}$ can reproduce the DFT $E(-90^\circ)-E(+90^\circ)$ (a zero-step evaluation with
+$D=0.097$~meV and $\hat{v}=\hat{y}$ gives $0.000$~meV); the eight bond-resolved DMI vectors that a faithful
+model needs would require at least eight independent canting probes, which are outside the scope of this
+work (Sec.~\ref{sec:limitations}). We instead bound the effect of a DMI of the measured magnitude on
+$|m|(T)$ with a control sweep that adds \texttt{spin/dmi} with $D=0.097$~meV and $\hat{v}=\hat{y}$ (an
+arbitrary but representative placement of a 3.5\% antisymmetric term) at four temperatures, and report the
+difference. The model is run on a $16\times8\times8$ replication (2048 spins) of the two-atom Fe primitive
+cell, with periodic boundaries and a rigid (spin-only) lattice. Single-ion anisotropy is set to zero
+(Sec.~\ref{sec:limitations}). Each run starts from the fully aligned FM ground state and is evolved
+under Langevin spin dynamics ($dt=0.1$~fs) for 200{,}000 steps (20~ps) at twelve temperatures from 10 to
+400~K; the normalized net magnetization $|m|=|\sum_i\hat{s}_i|/N$ is averaged over the second half of
+each run and over three independent thermostat seeds per temperature. The Langevin damping is set to
+$\alpha=1$: the equilibrium $|m|(T)$ does not depend on $\alpha$, but the thermalization time of the
+softest magnons of the finite cell scales as $1/\alpha$, and at the conventional $\alpha=0.05$ neither
+4~ps nor 20~ps runs had equilibrated at the temperatures nearest the transition (at 100~K the
+seed-averaged $|m|$ was still falling across the averaged half of both: from $0.49$ in its first $0.5$~ps
+to $0.38$ in its last for the 4~ps run, and from $0.15$ in its first 2~ps window to $0.07$ in its last for
+the 20~ps run). Equilibration is checked explicitly for every reported point by comparing the
+mean of $|m|$ over consecutive 2~ps windows of the averaged half; the $\alpha=0.05$ runs are kept
+alongside (\texttt{src/spin\_dynamics/logs\_v3\_4ps}, \texttt{logs\_v3\_a005\_20ps}) and approach the
+reported values from above.
+
+For mp-1079285 the same machinery carries a three-shell model, $H=-J_b\sum_{\rm chain}-J_{2b}\sum_{\pm2b}
+-J_\perp\sum_{\rm inter}\hat{s}_i\!\cdot\!\hat{s}_j+\sum_{\rm chain}\mathbf{D}\!\cdot\!(\hat{s}_i\times\hat{s}_j)$
+on the Fe sublattice (one spin per primitive cell, $|m|=1.68\,\mu_B$ as a classical unit vector).
+Two \texttt{spin/exchange} instances carry the chain bond (cutoff 5~\AA) and the 8.4~\AA{} shell
+(Bethe--Slater radial form with its root placed at the chain distance); because the $\pm2b$ bond has
+the same length as the inter-chain bonds, spins carry an atom type equal to their chain index modulo
+four, so that $\pm2b$ pairs (types differing by two) receive $J_{2b}$ by an explicit per-type override
+while inter-chain pairs (equal types) receive $J_\perp$. The DMI is carried by \texttt{spin/dmi} on
+the chain bond only (5~\AA{} cutoff), with its vector calibrated -- not assumed -- by zero-step
+energy evaluations of the very $90^\circ$ spirals used in the DFT, so that the model reproduces
+$E(+)-E(-)$ for both spiral planes. Before any sweep, zero-step evaluations of the $1\times2\times1$,
+$1\times4\times1$ ($++--$), $2a$ and $2c$ cells reproduce the four DFT energy differences --- the two
+chain cells exactly, the $2a$ and $2c$ cells to $0.5$\%, which is the residual of fitting one $J_\perp$ to
+two inequivalent shells --- and the $++--$ check is what exposes a $\pm2b$ bond silently given $J_\perp$. The production cell is an
+$8\times8\times8$ replication of the $1\times4\times1$ unit (2048 spins), started from FM along
+$b$, with the same Langevin protocol as above at fourteen temperatures from 5 to 300~K
+(\texttt{src/spin\_dynamics/build\_mp1079285\_model.py}, \texttt{outputs/mp1079285\_spin\_model.json}).
 
 \section{Results}
 
 \subsection{DFT validation of the shortlisted FM population}
+\label{sec:dftresults}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/fig_dft_margins.pdf}
-\caption{DFT ground-state margin for the 24 completed candidates, sorted by magnitude (symmetric-log
-horizontal axis). Seventeen candidates' MP-recorded FM label is overturned by a lower-energy AFM
-configuration (red); four are confirmed as the true FM ground state (blue); three sit at or below the
-electronic-convergence tolerance ($\le 0.10$~\meVat, gray) and are read as degenerate rather than
-informative.}
+\caption{DFT ground-state margin for the 26 candidates, sorted by magnitude (logarithmic horizontal
+axis; only calculations that converged and passed the spin-state audit enter, and a tight same-cell pair
+replaces the loose number wherever one exists). Twenty-one candidates' MP-recorded FM label is overturned
+by a lower-energy AFM or FiM configuration (red); three are confirmed as the true FM ground state (blue);
+two sit at or below the electronic-convergence tolerance ($\le 0.10$~\meVat, gray) and are read as
+degenerate rather than informative. Duplicate formulas are distinguished by their MP identifier.}
 \label{fig:margins}
 \end{figure}
 
-Of the 24 completed candidates, all carrying an MP-recorded \texttt{ground\_truth}, confidence-1.0
-ferromagnetic label, 17 have their FM label overturned by a lower-energy antiferromagnetic configuration
-(margins 0.31--24.68~\meVat), 4 are confirmed as the true FM ground state (1.18--2.41~\meVat below the
-next-lowest AFM configuration), and 3 sit within 0.10~\meVat -- inside the $\mathrm{EDIFF}=10^{-6}$~eV
-electronic-convergence tolerance used throughout -- and are read as degenerate rather than as confirming
-either ordering (Fig.~\ref{fig:margins}). Among the two remaining shortlisted-but-labeled-FiM candidates
-(mp-22972, mp-551086), DFT confirms AFM is lower than FM but does not test the recorded FiM label directly,
-since a collinear FM/AFM enumeration cannot represent a ferrimagnetic configuration; both are counted as
-overturned relative to the FM alternative only. A representative case, mp-861559 (TaFeO$_4$), illustrates
+Of the 26 candidates, all carrying an MP-recorded \texttt{ground\_truth}, confidence-1.0
+ferromagnetic label, 21 have their FM label overturned by a lower-energy antiferromagnetic or ferrimagnetic
+configuration (margins 0.19--24.68~\meVat), 3 are confirmed as the true FM ground state (1.24--2.92~\meVat\
+below the next-lowest configuration), and 2 (CaLaTaFeO$_6$ with AFM 0.10~\meVat\ below FM and
+Ba$_4$Ta$_{10}$FeO$_{30}$ at 0.00~\meVat, both from tight pairs) sit within 0.10~\meVat\ -- twice the
+per-atom electronic-convergence tolerance ($\mathrm{EDIFF}=5\times10^{-5}$~eV/atom) of the loose protocol
+-- and are read as degenerate rather than as confirming either ordering (Fig.~\ref{fig:margins}). No
+candidate remains unresolved: the one configuration never completed (the re-diagnosed $1\times1\times2$
+stacking of mp-682554, whose production run was dropped when the farm was stopped on 21 September to
+release the nodes) belongs to a candidate that another audited AFM cell already places 0.31~\meVat\
+below FM. The two shortlisted-but-labeled-FiM candidates (mp-22972, mp-551086) are counted relative to the
+FM alternative only, since a collinear FM/AFM enumeration cannot represent MP's recorded ferrimagnetic
+configuration directly; both have a collinear configuration below FM (an AFM cell 0.46~\meVat\ below the
+FM twin of the same cell for mp-22972, a ferrimagnetic Fe/Cr cell 0.80~\meVat\ below FM for mp-551086,
+both from tight pairs).
+
+The tight pairs changed four verdicts, in both directions. Zn$_2$FeWO$_6$ (mp-1047414), degenerate at
+0.10~\meVat\ under the loose protocol, is AFM by 0.17--0.19~\meVat\ in both of its same-cell pairs;
+Ba$_4$Ta$_{10}$FeO$_{30}$ (mp-1228547), ``confirmed FM'' by 1.18~\meVat\ loosely, is exactly degenerate
+(0.001~\meVat) once FM and AFM are compared in the same 90-atom cell; TiFeBiPbO$_6$ (mp-1216981), whose
+enumerated ``AFM'' cells had flipped only the $d^0$ Ti site, is AFM by 0.80--1.30~\meVat\ in all four
+Fe-only supercells; and Tb$_6$FeBi$_2$ (mp-1079285) and FeP$_6$(WO$_8$)$_3$ (mp-850225) remain FM, with
+same-cell margins on the enumerated AFM configurations (3.25 and 3.38~\meVat) larger than the loose numbers
+(2.32 and 2.09) suggested -- although for mp-1079285 the inter-chain AFM orderings computed for its spin
+model (Sec.~\ref{sec:1079285results}) lie only 1.24--1.25~\meVat\ above FM and now set its margin. All
+six loose-only overturns with $|$margin$|<2$~\meVat\ have been re-decided with tight pairs, and every one
+kept its sign: Ta$_2$FeO$_6$ (mp-1173143) $-0.41\to-0.41$, CrFe(BiO$_3$)$_2$ (mp-551086) $-0.85\to-0.80$,
+FeBi(SeO$_3$)$_3$ (mp-1197024) $-1.19\to-1.19$, CaFeReO$_6$ (mp-1343817) $-1.77\to-1.88$, the second
+Tb$_6$FeBi$_2$ entry (mp-22972) $-0.14\to-0.46$, and FeCu$_4$Re$_{14}$(Mo$_3$S$_{20}$)$_2$ (mp-682554)
+$-0.29\to-0.31$~\meVat. The last of these is the only pair that did not reach the force criterion: the
+two 130-atom relaxations were cut off at ionic steps 21--23 (maximum residual force 0.024 and
+0.036~eV/\AA\ against the $0.01$~eV/\AA\ target), but the total energy of each had been stationary to
+$10^{-6}$~eV over its last three steps, so the 0.31~\meVat\ gap (41~meV per cell) is quoted as
+provisional; its sign was never in doubt. A representative case, mp-861559 (TaFeO$_4$), illustrates
 the setup's internal consistency: its converged FM configuration reproduces MP's own recorded total
-magnetization to five significant figures (29.99998 vs. $30.0022\,\mu_B$), ruling out a
+magnetization to within $0.003\,\mu_B$ (30.00000 vs.\ $30.0022\,\mu_B$ for 36 atoms), ruling out a
 convention mismatch, while three symmetry-distinct AFM configurations all converge below it, the lowest by
 0.274~eV/cell ($\approx$45.7~meV/Fe).
 
-Among the 21 candidates that resolve clearly (excluding the 3 degenerate ties), overturned outcomes
-outnumber confirmed FM outcomes 17 to 4. This sample is drawn from the top of the DMI-filtered shortlist
+Among the 24 candidates that resolve clearly (excluding the 2 degenerate ties), overturned outcomes
+outnumber confirmed FM outcomes 21 to 3. This sample is drawn from the top of the DMI-filtered shortlist
 (noncentrosymmetric, heavy-SOC-element, net-moment structures) rather than a random or stratified sample of
 the full \texttt{ground\_truth} population, so it establishes the mislabeling rate within this specific
 structural family rather than a project-wide estimate; it is plausible, though untested here, that this
@@ -261,20 +524,46 @@ that MP's FM label cannot be taken at face value for candidates drawn from exact
 is precisely the population that DMI/skyrmion-material screening pipelines -- including the one used to
 generate this shortlist -- select from by construction.
 
+A provenance check against MP's own metadata (\texttt{theoretical} flag and ICSD cross-references, queried
+2026-09-20) adds a caveat that applies to the shortlist as a whole rather than to the ordering verdicts:
+24 of the 26 staged candidates are flagged theoretical -- hypothetical structures generated by MP's
+substitution and prototype workflows, 23 of them with no ICSD entry at all (mp-551086 carries an ICSD
+identifier but is still flagged theoretical). Only mp-1197024 (FeBi(SeO$_3$)$_3$, DFT ground state AFM) and mp-22972 (Tb$_6$FeBi$_2$,
+five ICSD entries) are experimentally reported compounds, and every candidate whose FM label survives DFT
+-- including mp-754090 -- is hypothetical, with MP hull distances of 0--0.085~eV/atom (mp-1079285 is a
+hypothetical polymorph of the experimental mp-22972). The funnel's symmetry and composition filters
+therefore preferentially select MP's generated structures, which is unsurprising -- noncentrosymmetric
+cation orderings of otherwise centrosymmetric prototypes are exactly what substitution workflows produce --
+but it means a confirmed-FM verdict here is a statement about a candidate that may not be synthesizable,
+and any experimental follow-up should start from the two ICSD-backed entries (Fig.~\ref{fig:provenance}).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_dft_provenance.pdf}
+\caption{DFT margin (lowest audited non-FM configuration minus FM, symmetric-log axis; negative means
+MP's FM label is overturned) against MP's own hull distance for the 26 candidates. Colour gives
+the verdict of Fig.~\ref{fig:margins}; the gray band is the $\pm0.10$~\meVat\ degeneracy window. Only one
+completed candidate (FeBi(SeO$_3$)$_3$, star) is an experimentally reported ICSD compound; every confirmed-FM
+entry is a hypothetical structure, and the margin shows no trend with hull distance.}
+\label{fig:provenance}
+\end{figure}
+
 \begin{table}[t]
 \centering
-\caption{Summary of DFT-validated ordering outcomes for the 24 completed candidates.}
+\caption{Summary of DFT-validated ordering outcomes for the 26 candidates. ``Tight'' counts the verdicts
+whose deciding margin comes from a same-cell FM/AFM pair (Sec.~II.D), one of them (mp-682554) from a pair
+stopped just short of the force criterion and therefore quoted as provisional; the remaining verdicts rest on the loose
+MP-recipe comparison, one of them with a margin below 2~\meVat\ (Sec.~\ref{sec:limitations}).}
 \label{tab:summary}
-\begin{tabular}{lc}
+\begin{tabular}{lcc}
 \toprule
-Outcome & Count \\
+Outcome & Count & Tight \\
 \midrule
-AFM overturns MP's recorded FM/FiM label & 17 \\
-FM confirmed as DFT ground state & 4 \\
-Degenerate ($\le 0.10$~\meVat) & 3 \\
+MP FM label overturned (AFM/FiM) & 21 & 9 \\
+FM confirmed & 3 & 2 \\
+Degenerate ($\le 0.10$~\meVat) & 2 & 2 \\
 \midrule
-Total completed & 24 \\
-Incomplete at time of writing & 2 \\
+Total & 26 & 13 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -285,16 +574,18 @@ Incomplete at time of writing & 2 \\
 \centering
 \includegraphics[width=\columnwidth]{figures/fig_mp754090_mvt.pdf}
 \caption{Normalized net magnetization of the mp-754090 Fe sublattice (2048-spin cell) versus temperature,
-driven purely by DFT-derived $J=12.06$~meV and $D=0.193$~meV with no fitting. $|m|$ decays monotonically
-with a knee between 150 and 200~K. Absolute magnitude is suppressed throughout by multi-domain cancellation
-from the random-spin initial condition (Sec.~\ref{sec:limitations}); the curve's shape, not its scale, is
-the physically meaningful signal here.}
+driven purely by the DFT-derived twelve-neighbor $J=2.78$~meV with no fitting; 20~ps Langevin dynamics
+($\alpha=1$), mean over three thermostat seeds (error bars: seed-to-seed standard deviation, smaller than
+the symbols except at 100~K). Runs start from the ordered state, so the absolute scale is physical
+($|m|\to1$ as $T\to0$); the high-temperature floor of $\approx0.025$ is the $1/\sqrt{N}$ finite-size value
+of a 2048-spin paramagnet.}
 \label{fig:mvt}
 \end{figure}
 
-For mp-754090, confirmed FM by 2.41~\meVat, the DFT-derived exchange and DMI constants are $J=12.06$~meV
-and $D=0.193$~meV, giving $D/J \approx 1.6\%$. This is notably smaller than an earlier order-of-magnitude
-placeholder estimate used before this calculation ($D/J\sim25\%$), and is physically plausible: the
+For mp-754090, confirmed FM by 2.23~\meVat, the DFT-derived exchange and DMI constants are $J=2.78$~meV
+and $D=0.097$~meV per bond on the twelve-neighbor Fe sublattice, giving $D/J \approx 3.5\%$. This is notably smaller than an earlier
+order-of-magnitude placeholder estimate used before this calculation ($D/J\sim25\%$), and is physically
+plausible: the
 magnetic ion at the probed bond, Fe, is a comparatively light $3d$ species with weak intrinsic spin-orbit
 coupling, despite the compound containing tungsten, a heavy-SOC element that is precisely what qualified
 this candidate for the DMI-compatibility funnel in the first place. This is a useful cautionary note for the
@@ -302,24 +593,219 @@ screening heuristic itself: the presence of a heavy-SOC element anywhere in the 
 guarantee a large DMI constant at the specific magnetic-ion bond that anchors the spin texture.
 
 Table~\ref{tab:mvt} and Fig.~\ref{fig:mvt} show the resulting finite-temperature magnetization sweep. $|m|$
-decreases monotonically from 0.195 at 10~K to 0.008 at 300~K, with the sharpest drop -- roughly a factor of
-two -- occurring between 150 and 200~K, consistent with an ordering transition in that range. The uptick at
-400~K (0.027, above the 300~K value) is not read as physical; Sec.~\ref{sec:limitations} discusses why.
+decreases monotonically from 0.966 at 10~K through 0.805 at 50~K and 0.659 at 75~K to 0.343 at 100~K,
+collapses to 0.068 at 125~K, and then sits on the finite-size floor ($0.025$--$0.044$ for 150--400~K; the
+$1/\sqrt{N}$ value for $N=2048$ is 0.022). The transition of the model therefore lies between 100 and
+125~K for this cell size, with 100~K -- the only point with an appreciable seed-to-seed spread
+($\pm0.027$) and within-run fluctuation ($0.043$ standard deviation over the averaged half, and up to
+$0.049$ between its 2~ps window means) -- just below it; the
+finite-size-scaling analysis below sharpens this to a single temperature. Two zero-parameter estimates for the same
+Hamiltonian bracket this: the mean-field value $T_c^{\rm MF} = zJ/3k_B = 129$~K ($z=12$) and the
+classical-Heisenberg fcc value $k_BT_c \approx 3.18\,J$~\cite{chen1993}, i.e.\ $\approx103$~K, which is the
+appropriate comparison for a twelve-coordinated close-packed classical unit-spin model. An independent
+Metropolis Monte Carlo calculation of the same Hamiltonian on the same 2048-spin lattice
+(\texttt{src/spin\_dynamics/mc\_check\_mp754090.py}; 2000 equilibration $+$ 2000 measurement sweeps)
+gives $|m| = 0.967$, $0.912$, $0.806$, $0.661$, $0.37\pm0.03$ and $0.07\pm0.02$ at 10, 25, 50, 75, 100 and
+125~K, i.e.\ agrees with the Langevin sweep to within 0.002 below 100~K and within the seed spread at
+100~K, so the reported curve is the equilibrium $|m|(T)$ of the model and not an artifact of the
+thermostat. The same Monte Carlo on the earlier six-neighbor lattice gives $|m|(10~{\rm K})=0.64$ and
+$0.23$ at 25~K -- the no-long-range-order signature that exposed the cutoff error. The DMI control sweep
+(Sec.~\ref{sec:spindyn}) changes $|m|$ by at most $0.013$ (at 100~K, within the seed spread) and by
+$\le0.005$ elsewhere, so an antisymmetric term of the measured 3.5\% magnitude does not move the ordering
+scale of this model. The simulated curve is therefore quantitatively consistent with its own inputs;
+whether it is consistent with the real material depends on the single-$J$, zero-anisotropy,
+rigid-lattice approximations listed in Sec.~\ref{sec:limitations}. For the record, the earlier versions
+of this sweep placed the knee at 150--200~K with the double-counted $J=12.06$~meV and, once properly
+equilibrated, at 25--50~K with the six-neighbor (layered) model -- both wrong for the reasons given in
+Sec.~\ref{sec:spindyn}; the 8\% loose/tight protocol spread in $J$ shifts the transition by about 8~K,
+less than the temperature grid spacing.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_mp754090_fss.pdf}
+\caption{Finite-size scaling of the mp-754090 spin model. Left: Binder cumulant
+$U_4 = 1-\langle m^4\rangle/3\langle m^2\rangle^2$ at four system sizes with the box aspect ratio held
+fixed ($N=256$, 864, 2048 and 4000 spins), from 40~ps Langevin dynamics ($\alpha=1$) with the moments
+pooled over the last 20~ps of four thermostat seeds; error bars are a drop-one-seed jackknife. Dotted
+lines mark the ordered ($2/3$) and disordered ($4/9$) limits of a three-component order parameter and the
+dashed line the mean of the three pairwise crossings, $T_c=101$~K. Right: $|m|(T)$ at the same four sizes,
+showing the collapse sharpening with $N$.}
+\label{fig:fss754090}
+\end{figure}
+
+A finite-size-scaling analysis pins this transition temperature down instead of bracketing it. Repeating
+the sweep at $N=256$, 864, 2048 and 4000 spins with the box aspect ratio held fixed (so that every size
+sees the same twelve-neighbor shell; \texttt{src/spin\_dynamics/run\_fss.sh}) and forming the
+fourth-order Binder cumulant $U_4 = 1-\langle m^4\rangle/3\langle m^2\rangle^2$ of the three-component
+order parameter, which tends to $2/3$ in the ordered phase and $4/9$ in the disordered one and is
+size-independent at $T_c$, the $U_4(T)$ curves of consecutive sizes cross at $99.5$, $101.3$ and
+$102.7$~K (Fig.~\ref{fig:fss754090}, \texttt{outputs/mp754090\_fss.csv}). The crossings drift upward
+monotonically with system size, the expected signature of corrections to scaling, giving
+$T_c = 101.2\pm1.3$~K over the three pairs with the largest pair ($N=2048\times4000$, least affected by
+those corrections) at $102.7$~K. The susceptibility
+$\chi = N(\langle m^2\rangle-\langle|m|\rangle^2)/k_BT$ peaks at 105~K independently at all four sizes.
+The transition of this model is therefore the classical-Heisenberg fcc value ($\approx103$~K) to within
+the 5~K grid spacing, while mean field overestimates it by 28\%. Two caveats attach to the number: $U_4$
+is a ratio of small fluctuating moments, so its jackknife error grows from $\pm0.0003$--$0.002$ at 95~K to
+$\pm0.03$ above $T_c$, and in that noisy regime the difference between two sizes can change sign on
+scales far below its own error bar. The crossings quoted here are therefore the lowest-temperature sign
+changes that persist: the difference is required to stay positive at a majority of the higher
+temperatures measured, which discards both the sub-noise flips inside the ordered plateau, where every
+$U_4$ has converged on $2/3$, and isolated single-point reversals above $T_c$, without asking any one
+noisy difference to carry the result (\texttt{src/spin\_dynamics/analyze\_fss.py}).
 
 \begin{table}[t]
 \centering
-\caption{Normalized net magnetization $|m|$ of the mp-754090 Fe sublattice vs.\ temperature, 2~ps Langevin
-dynamics per point, DFT-derived $J$ and $D$.}
+\caption{Normalized net magnetization $|m|$ of the mp-754090 Fe sublattice vs.\ temperature: 20~ps
+Langevin dynamics ($\alpha=1$) per point from the ordered state, averaged over the last 10~ps and over
+three thermostat seeds ($\pm$ = seed-to-seed standard deviation), DFT-derived twelve-neighbor
+$J=2.78$~meV, exchange only.}
 \label{tab:mvt}
 \begin{tabular}{cccc}
 \toprule
 $T$ (K) & $|m|$ & $T$ (K) & $|m|$ \\
 \midrule
-10  & 0.1952 & 150 & 0.1429 \\
-25  & 0.1869 & 200 & 0.0766 \\
-50  & 0.1765 & 250 & 0.0729 \\
-75  & 0.1675 & 300 & 0.0078 \\
-100 & 0.1572 & 400 & 0.0273 \\
+10  & $0.966\pm0.000$ & 150 & $0.044\pm0.002$ \\
+25  & $0.912\pm0.001$ & 175 & $0.039\pm0.001$ \\
+50  & $0.805\pm0.002$ & 200 & $0.032\pm0.002$ \\
+75  & $0.659\pm0.004$ & 250 & $0.029\pm0.000$ \\
+100 & $0.343\pm0.027$ & 300 & $0.027\pm0.001$ \\
+125 & $0.068\pm0.001$ & 400 & $0.025\pm0.000$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{mp-1079285: exchange hierarchy and DMI}
+\label{sec:1079285results}
+
+The same-cell pairs of Sec.~\ref{sec:1079285methods} give, for Tb$_6$FeBi$_2$, a strongly anisotropic
+exchange network. The chain pair (18-atom $1\times2\times1$ cell) places the chain-antiparallel state
+$58.43$~meV per cell above FM, i.e.\ $J_b=14.61$~meV for the 4.198~\AA{} Fe--Fe bond. The two inter-chain
+pairs are nearly identical, $\Delta E_{2a}=22.48$ and $\Delta E_{2c}=22.24$~meV per 18-atom cell
+(1.25 and 1.24~\meVat; Fe $\pm1.64$--$1.67\,\mu_B$, induced Tb $\le0.21\,\mu_B$ in all four
+calculations), which supports the $J_a\approx J_c$ part of the mean-field assumption and gives
+$J_\perp=2.80$~meV -- a factor of 5.2 weaker than the chain coupling, but ferromagnetic, so the material
+is a three-dimensional ferromagnet of coupled FM chains rather than a quasi-one-dimensional one. The
+spiral pairs give $\mathbf{D}\!\cdot\!\hat{n}_1=-0.074$ and $\mathbf{D}\!\cdot\!\hat{n}_2=-0.063$~meV,
+$|\mathbf{D}|=0.098$~meV per chain bond and $|\mathbf{D}|/J_b=0.67\%$ -- five times smaller than the
+$D/J$ of mp-754090, again with Fe as the only magnetic ion and the heavy elements (Tb, Bi) contributing
+only through the ligand field. The $1\times4\times1$ $++--$ pair places that state $84.92$~meV per
+36-atom cell above FM; subtracting $4J_b$ from the chain pair leaves $8J_{2b}=26.50$~meV, i.e.\
+$J_{2b}=3.31$~meV -- ferromagnetic and comparable to $J_\perp$, so the $\pm2b$ bond is not a
+negligible correction: it carries 13\% of $zJ = 2J_b+2J_{2b}+6J_\perp = 52.6$~meV and raises the
+mean-field estimate from $T_c^{\rm MF}=178$~K (chain $+$ inter-chain only) to $203$~K. This value is a
+difference of two energies computed with different $k$-meshes ($3\times3\times3$ on the
+$1\times2\times1$ cell for $J_b$, $3\times2\times3$ on the $1\times4\times1$ cell for $\Delta E_{4b}$).
+A same-cell check -- the $+-+-$ chain pattern in the $1\times4\times1$ cell, which flips all four chain
+bonds ($\Delta E=8J_b$) and is compared with the FM member of the $++--$ pair -- gives
+$\Delta E=100.93$~meV per 36-atom cell, i.e.\ $J_b=12.62$~meV, 14\% below the $1\times2\times1$
+value (this relaxation was cut off at ionic step 24 with a maximum force of 0.015~eV/\AA\ and its energy
+stationary to $10^{-6}$~eV, so the number is provisional in the same sense as the mp-682554 pair). The
+two pairs differ in cell and mesh -- the $1\times2\times1$ pair sits in the relaxed cell of the
+enumerated AFM configuration ($a=8.372$, $c=8.376$~\AA) with a mesh equivalent to 6 points along $b$ in
+the primitive cell, the $1\times4\times1$ pairs in the relaxed FM cell ($a=8.407$, $c=8.396$~\AA) with
+8 -- so the spread is the cell-shape and $k$-convergence sensitivity of a metallic Fe chain, and it
+brackets the exchange model: with the same-cell $J_b$ the residual is
+$J_{2b}=4.31$~meV, $zJ=50.6$~meV and $T_c^{\rm MF}=196$~K, against $J_{2b}=3.31$, $zJ=52.6$~meV and
+$203$~K with the chain-pair value; $|\mathbf{D}|/J_b$ ranges over $0.67$--$0.78\%$. The sweep below uses
+the chain-pair parameters (both pairs of that model are force-converged); the same-cell model was swept
+at 10, 100, 125, 150 and 200~K to check whether the 4\% change in $zJ$ moves the ordering bracket ---
+it does not: $|m|=0.975$, $0.668$, $0.497$, $0.108$ and $0.046$ (three seeds each, window drift
+$\le0.008$) against $0.975$, $0.672$, $0.509$, $0.128$ and $0.048$ for the chain-pair model at the same
+five temperatures, so the collapse sits between 125 and 150~K in both parametrizations.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_mp1079285_mvt.pdf}
+\caption{Normalized net magnetization of the mp-1079285 Fe sublattice (2048-spin cell) versus
+temperature from the three-shell model with DFT-derived $J_b=14.61$, $J_{2b}=3.31$, $J_\perp=2.80$ and
+$|\mathbf{D}|=0.098$~meV; 20~ps Langevin dynamics ($\alpha=1$) from the ordered state, mean over three
+thermostat seeds (error bars: seed-to-seed standard deviation, smaller than the symbols except at 150~K).}
+\label{fig:mvt1079285}
+\end{figure}
+
+Table~\ref{tab:mvt1079285} and Fig.~\ref{fig:mvt1079285} show the finite-temperature sweep of the
+three-shell model. $|m|$ falls smoothly from 0.988 at 5~K to 0.672 at 100~K and 0.509 at 125~K, then
+collapses to 0.128 at 150~K (the one point with a seed-to-seed spread, $\pm0.012$, and a within-run
+fluctuation of $\pm0.05$, as expected at the transition of a finite cell) and sits on the finite-size
+floor of 0.03--0.05 from 200~K. The ordering temperature of this cell size is therefore
+125--150~K --- the finite-size-scaling analysis below sharpens it to a single temperature --- i.e.\
+$0.6$--$0.75\,T_c^{\rm MF}$, the usual reduction of the classical Heisenberg transition below mean
+field (for comparison the ratio is 0.72 for the simple-cubic lattice and 0.79 for the
+twelve-coordinated fcc one~\cite{chen1993}; this $Pm$ structure has $z=2+2+6$ with unequal couplings,
+whose anisotropy is expected to push the ratio below both isotropic values). Every point passed the
+equilibration check: the seed-averaged change of $|m|$ between the first and last 2~ps windows of the
+averaged half is $\le0.008$ at every temperature (and $+0.018$ at 150~K, against within-window
+fluctuations of $\pm0.05$ there), with no monotonic trend.
+The sweep is insensitive to the DMI at this $D/J$: $|\mathbf{D}|/J_b=0.67\%$ produces a canting angle of
+order $D/2J\approx0.2^\circ$ per bond, far below the thermal disorder at any temperature on the grid.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/fig_mp1079285_fss.pdf}
+\caption{Finite-size scaling of the mp-1079285 three-shell model, as Fig.~\ref{fig:fss754090}:
+Binder cumulant (left) and $|m|$ (right) at $N=256$, 864, 2048 and 4000 spins with the box aspect
+ratio held fixed. Four 40~ps seeds per point at 120--130 and 155--160~K; 10--14 seeds at 135--150~K,
+where the crossings lie, six of them 80~ps. The dashed line is the mean of the three pairwise crossings,
+$T_c=139$~K.}
+\label{fig:fss1079285}
+\end{figure}
+
+The same finite-size-scaling analysis was run on this model (Fig.~\ref{fig:fss1079285},
+\texttt{outputs/mp1079285\_fss.csv}). The $U_4(T)$ curves of consecutive sizes cross at $140.9$,
+$141.4$ and $135.6$~K, giving $T_c = 139.3\pm2.6$~K, and $\chi$ peaks at 145~K for the three smaller
+cells and 140~K for the largest. This falls inside the 125--150~K bracket read off the 2048-spin sweep
+and puts the transition at $0.68\,T_c^{\rm MF}$, just below the isotropic simple-cubic ratio $0.72$,
+as the exchange anisotropy leads one to expect. The crossings are not monotonic in system size as they are for mp-754090,
+and the analysis is harder here for two reasons. The exchange is strongly anisotropic --- $J_b/J_\perp
+= 5.2$, though ferromagnetic on every shell --- so strong intra-chain correlations survive well above the three-dimensional ordering
+temperature and the $U_4$ curves separate gradually rather than pivoting about a point; and the
+fluctuations near $T_c$ are correspondingly larger, with the jackknife error on $U_4$ growing from
+$\pm0.0002$--$0.0007$ at 120~K to $\pm0.004$--$0.028$ at 150~K. The 135--150~K window was therefore run at 80~ps with
+10--14 seeds per point instead of 40~ps with four, which cut the error where the crossings lie
+($\pm0.048\rightarrow\pm0.014$ for $N=4000$ at 145~K, though not uniformly: the same cell's error at
+150~K grew from $\pm0.020$ to $\pm0.028$ as the longer runs sampled more of the disordered-phase
+excursions) and is what makes the three crossings agree to $\pm2.6$~K; the 155 and 160~K points retain only four seeds each and scatter back above the
+disordered limit $4/9$, and one such non-persistent sign change was discarded by the rule described
+above. The number to quote for this compound is therefore a transition near 140~K with a spread of a
+few kelvin, against 125--150~K from the single-cell sweep alone.
+
+Both crossings were re-derived under changes to the sampling window to test how much of the quoted
+spread is statistical. The equilibration cut matters and cannot be relaxed: discarding only the first
+quarter of each run instead of the first half moves mp-754090 to $109.8$~K and mp-1079285 to
+$134.5$~K, because the retained data still contain the thermalization transient from the ordered
+start. With the half-discard in place, mp-754090 is insensitive to further truncation --- averaging
+only the last quarter gives $98.0/102.4/103.0$~K, mean $101.1$~K, against the published $101.2$~K.
+mp-1079285 is not: its last quarter gives $141.0/141.1/123.4$~K, mean $135.2$~K, and the entire shift
+comes from the $2048\times4000$ pair. A check that shortens no window --- analyzing only the six 80~ps
+runs, which cover 135--150~K --- returns $140.0/143.2/135.7$~K, mean $139.6$~K, within $0.3$~K of the
+published value. The instability of individual pairs is visible directly in the raw series: one 40~ps
+seed at $N=4000$, 140~K has $U_4=0.582$ in its third quarter and $0.383$ in its fourth (a 10~ps
+window each), so the
+autocorrelation time of $U_4$ near $T_c$ is comparable to the run length. Pooling 10--14 seeds
+suppresses the residual quarter-to-quarter difference of the pooled estimate to $\le0.039$ but does
+not eliminate it. The $\pm1.3$ and $\pm2.6$~K spreads over pairwise crossings should therefore be read
+as lower bounds on the uncertainty of the model $T_c$, before the DFT coupling uncertainties of
+Sec.~\ref{sec:limitations} are added.
+
+\begin{table}[t]
+\centering
+\caption{Normalized net magnetization $|m|$ of the mp-1079285 Fe sublattice vs.\ temperature: 20~ps
+Langevin dynamics ($\alpha=1$) per point from the ordered state, averaged over the last 10~ps and over
+three thermostat seeds ($\pm$ = seed-to-seed standard deviation), DFT-derived three-shell model.}
+\label{tab:mvt1079285}
+\begin{tabular}{cccc}
+\toprule
+$T$ (K) & $|m|$ & $T$ (K) & $|m|$ \\
+\midrule
+5   & $0.988\pm0.000$ & 60  & $0.830\pm0.003$ \\
+10  & $0.975\pm0.000$ & 75  & $0.778\pm0.003$ \\
+20  & $0.949\pm0.001$ & 100 & $0.672\pm0.003$ \\
+30  & $0.921\pm0.001$ & 125 & $0.509\pm0.003$ \\
+40  & $0.892\pm0.002$ & 150 & $0.128\pm0.012$ \\
+50  & $0.862\pm0.002$ & 200 & $0.048\pm0.002$ \\
+    &                 & 250 & $0.036\pm0.001$ \\
+    &                 & 300 & $0.033\pm0.001$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -338,7 +824,7 @@ methodologies, applied to different (though overlapping-in-spirit) populations, 
 conclusion -- MP's single-initial-guess relaxation workflow systematically under-counts antiferromagnetic
 ground states -- is stronger evidence than either result alone. It also sharpens the practical implication
 specifically for DMI-material discovery: the population this work checked is not a random cross-section of
-MP but exactly the slice that such pipelines filter down to, and a 17-of-24 overturn rate in that slice is a
+MP but exactly the slice that such pipelines filter down to, and a 21-of-26 overturn rate in that slice is a
 direct warning to any workflow, including our own, that uses MP's ordering label as a hard screening
 criterion rather than a prior.
 
@@ -346,7 +832,7 @@ criterion rather than a prior.
 
 The screening funnel used to generate this shortlist (Sec.~II.C) excludes AFM-labeled candidates from
 consideration entirely, on the reasoning that a net moment is required for the texture-hosting mechanisms
-this project targets. If 17 of 24 top-ranked, MP-labeled-FM candidates from that funnel are, in fact, AFM,
+this project targets. If 21 of 26 top-ranked, MP-labeled-FM candidates from that funnel are, in fact, AFM or ferrimagnetic,
 a nontrivial fraction of the true magnetic-material landscape relevant to this search is being filtered out
 before any DFT or simulation resource is spent on it -- and, conversely, downstream compute (structure
 backfill, MLIP relaxation, spin-dynamics simulation) risks being spent on candidates whose net-moment
@@ -358,44 +844,80 @@ mp-754090.
 \subsection{Limitations}
 \label{sec:limitations}
 
-The 24-candidate validation batch is drawn from the top of one DMI-filtered shortlist, not a random or
-stratified sample of the broader \texttt{ground\_truth} population (1{,}647 candidates pass the DMI funnel;
-24 of those, not 24 of the full database, were checked). The mislabeling rate reported here is a property of
-this structural family, not a project-wide estimate. Two further candidates (mp-1173143, mp-682554) remain
-incomplete and are excluded rather than assumed either way.
+The 26-candidate validation batch is drawn from the top of one DMI-filtered shortlist, not a random or
+stratified sample of the broader \texttt{ground\_truth} population (1{,}864 candidates pass the DMI funnel,
+1{,}195 with the hull as a hard filter; 26 of those, not 26 of the full database, were checked). The
+mislabeling rate reported here is a property of this structural family, not a project-wide estimate. The
+verdict rule is deliberately asymmetric: a candidate is called overturned as soon as one competing
+configuration lies below FM by more than 0.10~\meVat, whereas ``confirmed'' requires every staged
+configuration to have passed the spin-state audit. The margins of the 12 overturned candidates decided on
+a loose (ISIF=3, relaxed-lattice) pair alone carry a protocol uncertainty that the sixteen doubly-computed
+configurations bound at 1.3~\meVat. Only one of them has $|$margin$|<2$~\meVat\ (Li$_4$NbFe(WO$_6$)$_2$,
+$-0.54$), and it already has a tight pair on a second configuration that corroborates the sign
+($-0.47$~\meVat). The six sub-2~\meVat\ overturns re-decided with tight pairs all kept their sign, with
+margins moving by at most 0.32~\meVat\ (Sec.~\ref{sec:dftresults}); the mp-682554 pair is force-unconverged
+(provisional) as stated there.
 
-The mp-754090 DMI probe resolves one projection ($D_y$ in an arbitrary lab frame, fixed consistently across
-the two canted calculations) of what is, in $P1$ symmetry, an unconstrained three-component DMI vector; a
-complete characterization would require probing additional canting planes. Single-ion anisotropy was not
-probed and is set to zero in the spin dynamics, for lack of any DFT or literature basis for a value.
+The mp-754090 DMI probe resolves one projection (the mean $D_y$ of the eight inequivalent
+inter-sublattice bonds, in an arbitrary lab frame fixed consistently across the two canted calculations)
+of what is, in $P1$ symmetry, eight unconstrained three-component DMI vectors; a complete characterization
+would require at least eight independent canting probes, and without it the DMI cannot be placed in the
+spin model in a way that is calibrated against DFT (Sec.~\ref{sec:spindyn}), so the mp-754090 sweep is
+exchange-only with the DMI effect bounded by a control. For mp-1079285 the symmetry is high enough
+($Pm$) that two spiral pairs fix the full chain-bond vector, which is why its model does carry a
+calibrated DMI. The third confirmed ferromagnet, FeP$_6$(WO$_8$)$_3$ (mp-850225), has one Fe per
+rhombohedral cell, so its Fe sublattice is a Bravais lattice on which a two-sublattice canting probe
+sees no DMI at all (the $+\mathbf{t}$ and $-\mathbf{t}$ bonds contribute opposite
+$\mathbf{D}\cdot(\mathbf{S}_0\times\mathbf{S}_1)$); resolving its $D$ needs a spiral in the 102-atom
+hexagonal cell, which was designed but not run within this project's compute budget, and its two
+exchange shells (six in-plane 8.77~\AA{} and six out-of-plane 8.91~\AA{} bonds, $J_1+J_2=28.7$~meV from
+the same-cell pair) were likewise left unseparated. Single-ion anisotropy was not probed in any
+compound and is set to zero in the spin dynamics, for lack of any DFT or literature basis for a value.
 
-The magnetization sweep's absolute scale is suppressed throughout, and its non-monotonic uptick at 400~K is
-not physical: relaxing a large (2048-spin), fully periodic cell from a random-spin initial condition with no
-symmetry-breaking field commonly produces a multi-domain final state whose domains partially cancel in the
-net magnetization, well below the true per-domain order parameter. The knee between 150 and 200~K is
-therefore read as a qualitative signal of an ordering transition in that range, not a quantitative critical
-temperature; a reliable $T_c$ estimate would require either an applied symmetry-breaking seed field,
-multi-seed ensemble averaging, or finite-size-scaling analysis (e.g. Binder-cumulant crossing), none of
-which were performed here.
+The magnetization sweeps are classical, unit-spin, rigid-lattice models with zero anisotropy. For
+mp-754090 the model is single-$J$: the in-plane and inter-layer bonds, and the four same-sublattice bonds,
+are all assigned the one $J$ that a single FM/AFM pair determines; the Fe moment ($\approx4\,\mu_B$ in
+DFT) is treated as a classical unit vector. For mp-1079285 the six inter-chain bonds share one
+$J_\perp$ by assumption. The Binder-cumulant crossings ($T_c=101.2\pm1.3$~K for
+mp-754090, $139.3\pm2.6$~K for mp-1079285) are critical temperatures of the spin models, not of the
+materials: they inherit the uncertainty of the DFT-derived couplings (an 8\% loose/tight spread in $J$
+for mp-754090, a 14\% spread in $J_b$ for mp-1079285) on top of the classical-unit-vector treatment of
+the moment, and the quoted error is only the spread over the three pairwise crossings. The quoted
+uncertainties are also unequally supported: the mp-754090 crossings are monotonic in system size, while
+those of the chain-anisotropic mp-1079285 model are not, and its 155--160~K points rest on four
+seeds each. Finally, the mp-754090 spin model was corrected twice during this work -- a
+bond-double-counting error that inflated $J$ by a factor of two, then a neighbor cutoff that silently
+discarded the six inter-layer bonds and left a lattice of uncoupled two-dimensional layers -- and the
+Langevin sweeps had to be moved from $\alpha=0.05$ to $\alpha=1$ before they were equilibrated. Each of
+these was caught by a check that we now regard as mandatory: a zero-step energy evaluation against every
+DFT pair, an explicit count and geometry of the neighbor shells the cutoff admits, an independent
+Metropolis Monte Carlo calculation of $|m|(T)$ on the same lattice, and a window-drift test on every
+reported point.
 
 \section{Conclusion}
 
 Within the specific structural family that Dzyaloshinskii--Moriya-candidate screening pipelines select --
 noncentrosymmetric, net-moment, heavy-spin-orbit-coupling-element compounds -- direct DFT energy-mapping on
-24 Materials-Project-labeled ferromagnets finds 17 mislabeled (true ground state antiferromagnetic), 4
-confirmed, and 3 degenerate. This DFT-level result independently corroborates, in a smaller but more
+26 Materials-Project-labeled ferromagnets finds 21 mislabeled (true ground state antiferromagnetic or
+ferrimagnetic), 3 confirmed, and 2 degenerate within 0.10~\meVat. This DFT-level result independently corroborates, in a smaller but more
 directly consequential population, the large-scale statistical finding of systematic ferromagnetic bias in
 MP recently reported from ML classifiers trained on experimentally solved magnetic
 structures~\cite{fahmy2026}. For one confirmed candidate, mp-754090, we additionally demonstrate a complete
 DFT-to-dynamics pipeline: exchange and DMI constants extracted from first principles, with no fitting, drive
-a finite-temperature spin-dynamics simulation that reproduces a physically sensible, monotonically decaying
-magnetization curve with an ordering knee near 150--200~K. Both results argue for treating high-throughput
+a finite-temperature spin-dynamics simulation whose Binder-cumulant crossing over four system sizes
+places the transition at $101\pm1$~K, matching the classical-Heisenberg estimate for the same exchange
+constant and an independent Monte Carlo calculation; for a second confirmed candidate, mp-1079285, a
+three-shell model with a symmetry-resolved, DFT-calibrated chain DMI orders at $139\pm3$~K. Both results argue for treating high-throughput
 database ordering labels as a screening prior rather than ground truth, particularly within the structural
 families that downstream physical mechanisms (here, DMI) specifically select for.
 
 \begin{acknowledgments}
 The author thanks their advisor for guidance connecting this project's DFT validation results to
 independent recent ML-based evidence of the same database bias.
+This research used computational resources at PARAM Rudra 20~PF HPC System provided by the Centre for
+Development of Advanced Computing (C-DAC) under the National Supercomputing Mission (NSM), India's flagship
+initiative jointly steered by the Ministry of Electronics and Information Technology (MeitY) and the
+Department of Science and Technology (DST).
 \end{acknowledgments}
 
 \begin{thebibliography}{99}
@@ -421,7 +943,7 @@ the ground-state collinear magnetic order of inorganic materials using Density F
 Comput. Mater. \textbf{5}, 64 (2019).
 
 \bibitem{fahmy2026} A. E. Fahmy, Learning Magnetic Order Classification from Large-Scale Materials
-Databases, arXiv:2509.05909 (2026).
+Databases, arXiv:2509.05909v2 (2026).
 
 \bibitem{gallego2016a} S. V. Gallego, J. M. Perez-Mato, L. Elcoro, E. S. Tasci, R. M. Hanson, K. Momma, and
 M. I. Aroyo, MAGNDATA: towards a database of magnetic structures. I. The commensurate case, J. Appl.
@@ -437,6 +959,10 @@ properties of spin-glasses, Phys. Rev. Lett. \textbf{44}, 1538 (1980).
 \bibitem{batatia2022} I. Batatia, D. P. Kov\'acs, G. N. C. Simm, C. Ortner, and G. Cs\'anyi, MACE: Higher
 order equivariant message passing neural networks for fast and accurate force fields, Adv. Neural Inf.
 Process. Syst. \textbf{35} (2022).
+
+\bibitem{chen1993} K. Chen, A. M. Ferrenberg, and D. P. Landau, Static critical behavior of
+three-dimensional classical Heisenberg models: A high-resolution Monte Carlo study, Phys. Rev. B
+\textbf{48}, 3249 (1993).
 
 \bibitem{tranchida2018} J. Tranchida, S. J. Plimpton, P. Thibaudeau, and A. P. Thompson, Massively parallel
 symplectic algorithm for coupled magnetic spin dynamics and molecular dynamics, J. Comput. Phys.

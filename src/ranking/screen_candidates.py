@@ -32,13 +32,27 @@ project_status_report.pdf Sec. 5):
      (e.g. Pt, Ir, W, Ta in synthetic multilayers). This is a heuristic filter, not a computed DMI
      value -- flag for anyone downstream expecting an actual DMI magnitude, which nothing in this
      pipeline computes yet.
-  4. Thermodynamically plausible: energy_above_hull <= 0.1 eV/atom where known (92.6% coverage,
-     MP + JARVIS only); records with unknown hull energy are kept but ranked below known-stable
+  4. Thermodynamically plausible: energy_above_hull <= 0.1 eV/atom where known (MP, JARVIS
+     [recomputed, see below] and OQMD: 1,340 of the 1,864 funnel survivors on 2026-09-20);
+     records with unknown hull energy are kept but ranked below known-stable
      ones rather than excluded, since AFLOW/MAGNDATA lack this field entirely and shouldn't be
      penalized to zero for a field their source never provided.
 
+  Revision 2026-09-20: (a) the JARVIS `ehull` field copied into the harmonized dataset is not a
+     hull distance (median 1.7 eV/atom over the whole snapshot; see recompute_jarvis_hull.py) --
+     the hull energy of every JARVIS record is now replaced by the value recomputed from JARVIS's
+     own formation energies (data/processed/jarvis_ehull_recomputed.csv), which is what the
+     "MP + JARVIS" coverage statement in the paper implied all along. (b) `--hull-hard` makes
+     criterion 4 an exclusion (known hull > 0.1 eV/atom dropped; unknown kept) and ranks known-
+     stable records by hull energy before confidence; its outputs go to *_hullhard.csv so the
+     original ranking that the DFT batch was drawn from stays reproducible.
+  (c) Tier-2 local-geometry features are now computed for every source whose structure could be
+     fetched (fetch_structures_all.py + attach_structures), not only MAGNDATA/2DMatPedia, so the
+     deployment model and the screened records use the same feature definition -- previously
+     "Tier-2 missing" was a proxy for the source database.
+
 Usage:
-    python screen_candidates.py [--top N]
+    python screen_candidates.py [--top N] [--hull-hard]
 """
 import argparse
 import json
@@ -54,7 +68,7 @@ from sklearn.preprocessing import LabelEncoder
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src" / "baseline"))
 from build_features_v2 import (  # noqa: E402
-    MAGNETIC_ELEMENTS, composition_features, crystal_system_from_sg, local_structure_features,
+    MAGNETIC_ELEMENTS, attach_structures, composition_features, crystal_system_from_sg, tier2_features_parallel,
 )
 
 CATEGORICAL_COLS = ["space_group_number", "crystal_system_bucket"]
@@ -95,31 +109,37 @@ def build_all_features(records: list[dict]) -> pd.DataFrame:
         feats["crystal_system_bucket"] = crystal_system_from_sg(sg)
         feats["energy_above_hull"] = r.get("energy_above_hull")
 
-        if r.get("structure") is not None:
-            feats.update(local_structure_features(r["structure"]))
-        else:
-            feats.update({
-                "n_magnetic_sites": np.nan, "fraction_magnetic_sites": np.nan,
-                "mean_magmag_nn_distance": np.nan, "min_magmag_nn_distance": np.nan,
-                "std_magmag_nn_distance": np.nan, "mean_magnetic_coordination": np.nan,
-            })
-
         ordering = r.get("ordering")
         feats["ordering"] = ordering if ordering and ordering != "Unknown" else None
-        rows.append(feats)
-    return pd.DataFrame(rows)
+        rows.append((feats, r.get("structure")))
+
+    # Tier 2 local-geometry features for every row with a structure (all sources since the
+    # 2026-09-20 revision -- see build_features_v2.attach_structures); NaN where none is available.
+    for (feats, _), t2 in zip(rows, tier2_features_parallel([st for _, st in rows])):
+        feats.update(t2)
+    return pd.DataFrame([f for f, _ in rows])
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--top", type=int, default=200, help="how many top candidates to write out")
+    ap.add_argument("--hull-hard", action="store_true",
+                    help="exclude records with a KNOWN hull energy > 0.1 eV/atom and rank stable ones by "
+                         "hull energy first; writes *_hullhard.csv")
     args = ap.parse_args()
 
     with open(ROOT / "data" / "processed" / "harmonized_v2.json") as f:
         records = json.load(f)
     print(f"Loaded {len(records)} harmonized records")
+    coverage = attach_structures(records)
+    print("structure coverage for Tier-2 features:", {k: f"{v['with_structure']}/{v['n']}" for k, v in coverage.items()})
 
     df = build_all_features(records)
+    jarvis_hull = pd.read_csv(ROOT / "data" / "processed" / "jarvis_ehull_recomputed.csv").set_index("material_id")["ehull_recomputed"]
+    is_jarvis = df["source_database"] == "JARVIS"
+    df.loc[is_jarvis, "energy_above_hull"] = df.loc[is_jarvis, "material_id"].map(jarvis_hull).values
+    print(f"JARVIS hull energies replaced by recomputed values for {is_jarvis.sum()} records "
+          f"({df.loc[is_jarvis, 'energy_above_hull'].notna().sum()} defined)")
     labeled_mask = df["ordering"].notna()
     print(f"{labeled_mask.sum()} labeled, {(~labeled_mask).sum()} unlabeled")
 
@@ -137,7 +157,7 @@ def main():
     print("Classes:", list(encoder.classes_))
 
     # Deployment model: train on ALL labeled data (not a train/test split -- that evaluation
-    # already happened in train_eval_lightgbm_v2.py, 67.0% accuracy / 68.1% balanced accuracy;
+    # already happened in train_eval_lightgbm_v2.py, 67.4% accuracy / 68.0% balanced accuracy with Tier-2 for all sources;
     # this is the final model used to actually screen the unlabeled majority of the database).
     model = lgb.LGBMClassifier(
         n_estimators=300, num_leaves=31, learning_rate=0.05, objective="multiclass",
@@ -156,7 +176,7 @@ def main():
 
     print("\nordering_final distribution (ground truth + predicted combined):")
     print(df["ordering_final"].value_counts())
-    print("\nPredicted-only distribution (the 25,495 previously-unlabeled records, incl. all JARVIS):")
+    print(f"\nPredicted-only distribution (the {(~labeled_mask).sum():,} unlabeled records, incl. all JARVIS):")
     print(df.loc[~labeled_mask, "ordering_final"].value_counts())
 
     # --- Screening filters ---
@@ -178,12 +198,16 @@ def main():
     df["has_heavy_soc"] = df["heavy_soc_elements"].apply(len).gt(0)
 
     funnel = {"total": len(df)}
+    per_source = {"total": df["source_database"].value_counts().to_dict()}
     step = df[df["ordering_final"].isin(["FM", "FiM"])]
     funnel["FM/FiM ordering"] = len(step)
+    per_source["FM/FiM ordering"] = step["source_database"].value_counts().to_dict()
     step = step[step["is_noncentrosymmetric"] == True]  # noqa: E712
     funnel["+ noncentrosymmetric"] = len(step)
+    per_source["+ noncentrosymmetric"] = step["source_database"].value_counts().to_dict()
     step = step[step["has_heavy_soc"]]
     funnel["+ heavy-SOC element present"] = len(step)
+    per_source["+ heavy-SOC element present"] = step["source_database"].value_counts().to_dict()
     print("\nScreening funnel:")
     for k, v in funnel.items():
         print(f"  {k}: {v}")
@@ -191,9 +215,28 @@ def main():
     step = step.copy()
     step["hull_known"] = step["energy_above_hull"].notna()
     step["hull_ok"] = step["energy_above_hull"].fillna(np.inf) <= 0.1
-    step = step.sort_values(
-        by=["hull_ok", "confidence", "hull_known"], ascending=[False, False, False]
-    )
+    funnel["  of which hull known"] = int(step["hull_known"].sum())
+    funnel["  of which hull <= 0.1 eV/atom"] = int(step["hull_ok"].sum())
+    per_source["  of which hull known"] = step.loc[step["hull_known"], "source_database"].value_counts().to_dict()
+    per_source["  of which hull <= 0.1 eV/atom"] = step.loc[step["hull_ok"], "source_database"].value_counts().to_dict()
+    if args.hull_hard:
+        step = step[step["hull_ok"] | ~step["hull_known"]]
+        funnel["+ hull <= 0.1 where known (hard)"] = len(step)
+        per_source["+ hull <= 0.1 where known (hard)"] = step["source_database"].value_counts().to_dict()
+        step = step.sort_values(
+            by=["hull_known", "energy_above_hull", "confidence"], ascending=[False, True, False]
+        )
+    else:
+        step = step.sort_values(
+            by=["hull_ok", "confidence", "hull_known"], ascending=[False, False, False]
+        )
+    print("\nScreening funnel (with hull):")
+    for k, v in funnel.items():
+        print(f"  {k}: {v}")
+    suffix = "_hullhard" if args.hull_hard else ""
+    with open(ROOT / "outputs" / f"screening_funnel{suffix}.json", "w") as f:
+        json.dump({"funnel": funnel, "per_source": per_source,
+                   "labeled": int(labeled_mask.sum()), "unlabeled": int((~labeled_mask).sum())}, f, indent=2)
 
     out_cols = [
         "material_id", "source_database", "formula", "ordering_final", "ordering_source",
@@ -203,14 +246,17 @@ def main():
     shortlist = step[out_cols].head(args.top)
     out_dir = ROOT / "outputs"
     out_dir.mkdir(parents=True, exist_ok=True)
-    shortlist.to_csv(out_dir / "candidate_shortlist.csv", index=False)
-    print(f"\nWrote top {len(shortlist)} candidates to {out_dir / 'candidate_shortlist.csv'}")
+    shortlist.to_csv(out_dir / f"candidate_shortlist{suffix}.csv", index=False)
+    print(f"\nWrote top {len(shortlist)} candidates to {out_dir / f'candidate_shortlist{suffix}.csv'}")
     print("\nTop 15 preview:")
     print(shortlist.head(15).to_string(index=False))
 
     # Full screened set (not just top-N) for downstream use / re-ranking without retraining.
-    step[out_cols].to_csv(out_dir / "candidate_screened_full.csv", index=False)
-    print(f"Wrote full screened set ({len(step)} rows) to {out_dir / 'candidate_screened_full.csv'}")
+    step[out_cols].to_csv(out_dir / f"candidate_screened_full{suffix}.csv", index=False)
+    print(f"Wrote full screened set ({len(step)} rows) to {out_dir / f'candidate_screened_full{suffix}.csv'}")
+    for src in ("MaterialsProject", "JARVIS", "AFLOW"):
+        t = step[step.source_database == src].head(100)
+        print(f"  top-100 {src}: hull known {t.hull_known.sum()}, hull<=0.1 {t.hull_ok.sum()}")
 
 
 if __name__ == "__main__":

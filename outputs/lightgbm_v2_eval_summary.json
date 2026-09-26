@@ -1,6 +1,6 @@
 {
-  "accuracy": 0.6696788544418184,
-  "balanced_accuracy": 0.6809029659236921,
+  "accuracy": 0.6739886000278048,
+  "balanced_accuracy": 0.6802380249494067,
   "n_train": 28769,
   "n_test": 7193,
   "classes": [
@@ -23,14 +23,54 @@
     },
     "MAGNDATA": {
       "n": 401,
-      "accuracy": 0.8952618453865336,
-      "balanced_accuracy": 0.5781567130598412
+      "accuracy": 0.7581047381546134,
+      "balanced_accuracy": 0.5571250706701364
     },
     "MaterialsProject": {
       "n": 6791,
-      "accuracy": 0.656309821823001,
-      "balanced_accuracy": 0.6298150894265913
+      "accuracy": 0.66897364158445,
+      "balanced_accuracy": 0.6592178190662126
     }
+  },
+  "confusion_matrix": {
+    "rows_true_cols_pred": [
+      "AFM",
+      "FM",
+      "FiM",
+      "NM"
+    ],
+    "counts": [
+      [
+        532,
+        149,
+        48,
+        18
+      ],
+      [
+        383,
+        3042,
+        624,
+        403
+      ],
+      [
+        106,
+        343,
+        709,
+        90
+      ],
+      [
+        23,
+        98,
+        60,
+        565
+      ]
+    ]
+  },
+  "features_file": "data/features/baseline_features_v2.csv",
+  "tier2_coverage": {
+    "AFLOW": 1.0,
+    "MAGNDATA": 0.9838457529963522,
+    "MaterialsProject": 1.0
   },
   "v1_comparison": {
     "accuracy": 0.5674,

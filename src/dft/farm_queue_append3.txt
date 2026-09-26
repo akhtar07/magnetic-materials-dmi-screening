@@ -1,0 +1,12 @@
+dft_staging_tight/mp-682554/afm_3_afm std
+dft_staging_tight/mp-682554/fm_in_3_afm std
+dft_staging_tight/mp-1197024/afm_3_afm std
+dft_staging_tight/mp-1197024/fm_in_3_afm std
+dft_staging_tight/mp-1173143/afm_7_afm std
+dft_staging_tight/mp-1173143/fm_in_7_afm std
+dft_staging_tight/mp-551086/afm_5_fim std
+dft_staging_tight/mp-551086/fm_in_5_fim std
+dft_staging_tight/mp-1343817/afm_1_afm std
+dft_staging_tight/mp-1343817/fm_in_1_afm std
+dft_staging_tight/mp-22972/afm_3_afm std
+dft_staging_tight/mp-22972/fm_in_3_afm std

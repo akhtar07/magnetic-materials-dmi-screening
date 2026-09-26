@@ -1,0 +1,5 @@
+dft_staging/mp-682554/diag_1x1x2/v1_defaults std
+dft_staging/mp-682554/diag_1x1x2/v2_ismear0 std
+dft_staging/mp-682554/diag_1x1x2/v3_kerker_metal std
+dft_staging/mp-682554/diag_1x1x2/v4_algo_all std
+dft_staging/mp-682554/diag_1x1x2/v5_kerker_semi std

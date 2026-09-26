@@ -1,0 +1,138 @@
+{
+  "per_calc": {
+    "spiral_n1_plus": {
+      "E": -199.49157425,
+      "E_sigma0": -199.39836662,
+      "converged": true,
+      "n_scf": 73,
+      "E_penalty": 1.147e-09,
+      "fe_along": [
+        -1.503,
+        -1.497,
+        -1.503,
+        -1.497
+      ],
+      "fe_perp": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "other_max": 0.095,
+      "normal": [
+        1.0,
+        -1.7e-05,
+        2.9e-05
+      ],
+      "chirality": 1
+    },
+    "spiral_n1_minus": {
+      "E": -199.49098112,
+      "E_sigma0": -199.39753768,
+      "converged": true,
+      "n_scf": 70,
+      "E_penalty": 5.2772e-10,
+      "fe_along": [
+        -1.502,
+        -1.496,
+        -1.502,
+        -1.496
+      ],
+      "fe_perp": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "other_max": 0.095,
+      "normal": [
+        1.0,
+        -1.7e-05,
+        2.9e-05
+      ],
+      "chirality": -1
+    },
+    "spiral_n2_plus": {
+      "E": -199.491547,
+      "E_sigma0": -199.39826511,
+      "converged": true,
+      "n_scf": 75,
+      "E_penalty": 1.5955e-09,
+      "fe_along": [
+        -1.503,
+        -1.497,
+        -1.503,
+        -1.497
+      ],
+      "fe_perp": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "other_max": 0.095,
+      "normal": [
+        2.9e-05,
+        -1.1e-05,
+        -1.0
+      ],
+      "chirality": 1
+    },
+    "spiral_n2_minus": {
+      "E": -199.49104032,
+      "E_sigma0": -199.39764797,
+      "converged": true,
+      "n_scf": 75,
+      "E_penalty": 5.7717e-10,
+      "fe_along": [
+        -1.502,
+        -1.496,
+        -1.502,
+        -1.496
+      ],
+      "fe_perp": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "other_max": 0.095,
+      "normal": [
+        2.9e-05,
+        -1.1e-05,
+        -1.0
+      ],
+      "chirality": -1
+    }
+  },
+  "dmi": {
+    "n1": {
+      "normal": [
+        1.0,
+        -1.7e-05,
+        2.9e-05
+      ],
+      "D_dot_n_meV": -0.0741412500033789,
+      "D_dot_n_meV_from_E_sigma0": -0.10361749999887593,
+      "E_plus": -199.49157425,
+      "E_minus": -199.49098112,
+      "both_converged": true,
+      "penalty_max_eV": 1.147e-09
+    },
+    "n2": {
+      "normal": [
+        2.9e-05,
+        -1.1e-05,
+        -1.0
+      ],
+      "D_dot_n_meV": -0.06333500000010872,
+      "D_dot_n_meV_from_E_sigma0": -0.07714250000034895,
+      "E_plus": -199.491547,
+      "E_minus": -199.49104032,
+      "both_converged": true,
+      "penalty_max_eV": 1.5955e-09
+    },
+    "D_magnitude_meV": 0.09751024139585186,
+    "note": "|D| from the two in-plane-perpendicular projections; D_b = 0 by the Pm mirror normal to b. Per Fe-Fe nearest-neighbour bond, unit spins, E = sum_<ij> D_ij.(S_i x S_j)."
+  }
+}

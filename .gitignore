@@ -31,3 +31,24 @@ paper/*.out
 paper/*.fls
 paper/*.fdb_latexmk
 paper/*.synctex.gz
+
+# Personal files that happen to live at the repo root (not part of this project)
+/My_CV.pdf
+/main.tex
+/main.pdf
+
+# Raw LAMMPS-SPIN thermo logs from the M(T) and FSS sweeps (~355 MB).
+# Regenerable from the committed in.*.lammps + run_*.sh scripts; the
+# analysis-ready reductions are committed under outputs/ (*_mvt*.csv, *_fss.csv).
+src/spin_dynamics/logs_fss_mp754090/
+src/spin_dynamics/logs_fss_mp1079285/
+src/spin_dynamics/logs_mp1079285/
+src/spin_dynamics/logs_mp1079285_4ps/
+src/spin_dynamics/logs_mp1079285_a005_20ps/
+src/spin_dynamics/logs_mp1079285_samecell/
+src/spin_dynamics/logs_v2/
+src/spin_dynamics/logs_v3/
+src/spin_dynamics/logs_v3_4ps/
+src/spin_dynamics/logs_v3_a005_20ps/
+src/spin_dynamics/logs_v4/
+src/spin_dynamics/logs_v4_dmi/

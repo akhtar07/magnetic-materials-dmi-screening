@@ -1,0 +1,60 @@
+{
+  "funnel": {
+    "total": 64635,
+    "FM/FiM ordering": 47614,
+    "+ noncentrosymmetric": 19280,
+    "+ heavy-SOC element present": 1864,
+    "  of which hull known": 1340,
+    "  of which hull <= 0.1 eV/atom": 671
+  },
+  "per_source": {
+    "total": {
+      "MaterialsProject": 37783,
+      "JARVIS": 19116,
+      "AFLOW": 2639,
+      "MAGNDATA": 1919,
+      "2DMatPedia": 1862,
+      "OQMD": 816,
+      "NOMAD": 500
+    },
+    "FM/FiM ordering": {
+      "MaterialsProject": 29621,
+      "JARVIS": 12703,
+      "AFLOW": 2384,
+      "2DMatPedia": 1539,
+      "OQMD": 691,
+      "NOMAD": 351,
+      "MAGNDATA": 325
+    },
+    "+ noncentrosymmetric": {
+      "MaterialsProject": 12503,
+      "JARVIS": 4999,
+      "AFLOW": 978,
+      "2DMatPedia": 472,
+      "NOMAD": 148,
+      "OQMD": 122,
+      "MAGNDATA": 58
+    },
+    "+ heavy-SOC element present": {
+      "MaterialsProject": 768,
+      "JARVIS": 537,
+      "AFLOW": 392,
+      "2DMatPedia": 77,
+      "NOMAD": 53,
+      "OQMD": 35,
+      "MAGNDATA": 2
+    },
+    "  of which hull known": {
+      "MaterialsProject": 768,
+      "JARVIS": 537,
+      "OQMD": 35
+    },
+    "  of which hull <= 0.1 eV/atom": {
+      "MaterialsProject": 421,
+      "JARVIS": 221,
+      "OQMD": 29
+    }
+  },
+  "labeled": 35962,
+  "unlabeled": 28673
+}

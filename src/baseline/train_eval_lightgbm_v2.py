@@ -10,13 +10,14 @@ disproportionately in MAGNDATA's per-source numbers, not necessarily in the aggr
 Usage:
     python train_eval_lightgbm_v2.py
 """
+import argparse
 import json
 from pathlib import Path
 
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report, confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
@@ -25,7 +26,11 @@ CATEGORICAL_COLS = ["space_group_number", "crystal_system_bucket"]
 
 
 def main():
-    df = pd.read_csv(ROOT / "data" / "features" / "baseline_features_v2.csv")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--features", default=str(ROOT / "data" / "features" / "baseline_features_v2.csv"))
+    ap.add_argument("--tag", default="", help="suffix for output files, e.g. _tier2all")
+    args = ap.parse_args()
+    df = pd.read_csv(args.features)
     print(f"Loaded {len(df)} rows")
 
     feature_cols = [c for c in df.columns if c not in ("material_id", "source_database", "ordering")]
@@ -77,9 +82,13 @@ def main():
 
     out_dir = ROOT / "outputs"
     out_dir.mkdir(parents=True, exist_ok=True)
-    importance.to_csv(out_dir / "lightgbm_v2_feature_importance.csv")
+    importance.to_csv(out_dir / f"lightgbm_v2_feature_importance{args.tag}.csv")
+    # Per-record test predictions (for the confusion-matrix figure and any later error analysis).
+    pd.DataFrame({"material_id": id_test.values, "source_database": src_test.values,
+                  "y_true": encoder.inverse_transform(y_test), "y_pred": encoder.inverse_transform(preds)}
+                 ).to_csv(out_dir / f"lightgbm_v2_test_predictions{args.tag}.csv", index=False)
 
-    with open(out_dir / "lightgbm_v2_eval_summary.json", "w") as f:
+    with open(out_dir / f"lightgbm_v2_eval_summary{args.tag}.json", "w") as f:
         json.dump({
             "accuracy": acc,
             "balanced_accuracy": bal_acc,
@@ -88,6 +97,11 @@ def main():
             "classes": list(encoder.classes_),
             "class_balance": y_raw.value_counts().to_dict(),
             "per_source": per_source,
+            "confusion_matrix": {"rows_true_cols_pred": list(encoder.classes_),
+                                 "counts": confusion_matrix(y_test, preds).tolist()},
+            "features_file": str(Path(args.features).relative_to(ROOT)) if Path(args.features).is_relative_to(ROOT) else args.features,
+            "tier2_coverage": {src: float(df.loc[df["source_database"] == src, "n_magnetic_sites"].notna().mean())
+                               for src in sorted(df["source_database"].unique())},
             "v1_comparison": {"accuracy": 0.5674, "balanced_accuracy": 0.6070},
         }, f, indent=2)
     print(f"\nWrote feature importance + eval summary to {out_dir}")

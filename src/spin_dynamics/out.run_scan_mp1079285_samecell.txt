@@ -1,0 +1,16 @@
+T=150 seed=21 done
+T=10 seed=63 done
+T=125 seed=21 done
+T=125 seed=42 done
+T=200 seed=21 done
+T=200 seed=63 done
+T=10 seed=21 done
+T=125 seed=63 done
+T=100 seed=42 done
+T=100 seed=63 done
+T=100 seed=21 done
+T=150 seed=42 done
+T=150 seed=63 done
+T=200 seed=42 done
+T=10 seed=42 done
+ALL_DONE
