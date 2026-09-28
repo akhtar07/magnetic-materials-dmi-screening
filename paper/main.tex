@@ -75,7 +75,11 @@ DFT-grounded verification of one candidate costs and returns.
 Materials that host a stable Dzyaloshinskii--Moriya interaction (DMI)~\cite{dzyaloshinsky1958,moriya1960}
 are of active interest for chiral spin-texture and skyrmion-based non-volatile memory, because the
 antisymmetric exchange term the DMI contributes can stabilize spin spirals and skyrmion lattices at zero
-field~\cite{fert2013,nagaosa2013}. Searching for such materials computationally begins, almost universally,
+field~\cite{bogdanov1994,fert2013,nagaosa2013}. Skyrmion lattices of this kind have been observed in bulk
+chiral magnets~\cite{muhlbauer2009,yu2010}, at atomic scale in ultrathin films~\cite{heinze2011}, written and
+deleted individually with a spin-polarized current~\cite{romming2013}, and stabilized at room temperature in
+multilayer stacks~\cite{woo2016}; the materials landscape and the device prospects that motivate this search
+are reviewed in Refs.~\cite{fert2017,tokura2021}. Searching for such materials computationally begins, almost universally,
 with a curated high-throughput database -- most commonly the Materials Project (MP)~\cite{jain2013} -- used
 to filter tens of thousands of candidates down to a tractable shortlist before committing expensive
 first-principles or simulation resources. That filtering step depends on the database's recorded magnetic
@@ -114,8 +118,11 @@ atomistic spin dynamics driven by those DFT-derived constants with no fitting or
 
 \subsection{Harmonized multi-source database}
 
-Seven public sources -- Materials Project (37{,}783 records, via \texttt{mp-api}), JARVIS-DFT (19{,}116),
-AFLOW (2{,}639), MAGNDATA (1{,}919 of 2{,}414 attempted), 2DMatPedia (1{,}862), OQMD (816), and NOMAD (500) --
+Seven public sources -- Materials Project~\cite{jain2013} (37{,}783 records, via the \texttt{mp-api} REST
+interface~\cite{ong2015}), JARVIS-DFT~\cite{choudhary2020} (19{,}116), AFLOW~\cite{curtarolo2012}
+(2{,}639), MAGNDATA~\cite{gallego2016a,gallego2016b} (1{,}919 of 2{,}414 attempted),
+2DMatPedia~\cite{zhou2019} (1{,}862), OQMD~\cite{saal2013,kirklin2015} (816), and NOMAD~\cite{draxl2018}
+(500) --
 were merged into one schema (\texttt{material\_id}, \texttt{formula}, \texttt{elements},
 \texttt{space\_group}, \texttt{density}, \texttt{volume}, \texttt{band\_gap}, \texttt{ordering},
 \texttt{total\_magnetization}, and, where available, full structure and per-site magnetic-moment vectors),
@@ -139,7 +146,10 @@ $Pnma$).
 
 \subsection{Structure-aware magnetic-ordering classifier}
 
-A LightGBM classifier predicts ordering (FM/AFM/FiM/NM) from composition- and structure-derived features. A
+A LightGBM~\cite{ke2017} gradient-boosted-decision-tree classifier predicts ordering (FM/AFM/FiM/NM) from
+composition- and structure-derived features, in the spirit of general-purpose composition-based property
+models~\cite{ward2016,schmidt2019} and of earlier machine-learning treatments of magnetic order and
+ordering temperature~\cite{nelson2019,court2020,frey2020,kabiraj2020}. A
 composition-only baseline (per-element statistics of atomic number, mass, electronegativity, atomic radius,
 plus group/period/transition-metal/rare-earth fractions) achieves 56.7\% accuracy (60.7\% balanced
 accuracy). Adding two tiers of structural features -- broad, near-universal-coverage fields (space group
@@ -186,7 +196,9 @@ downstream simulation stage), a noncentrosymmetric space group (DMI is symmetry-
 inversion center~\cite{moriya1960}; verified computationally against all 230 space groups, recovering the
 textbook 92 centrosymmetric / 138 noncentrosymmetric split), presence of at least one heavy
 spin-orbit-coupling element (Ta, W, Re, Os, Ir, Pt, Au, Hg, Bi -- the classic DMI-enhancing species by the
-Fert--Levy and Moriya mechanisms~\cite{fert1980,moriya1960}), and thermodynamic plausibility
+Fert--Levy and Moriya mechanisms~\cite{fert1980,moriya1960}, whose interfacial and bulk manifestations have
+been characterized both experimentally and from first principles~\cite{crepieux1998,yang2015}), and
+thermodynamic plausibility
 ($E_\mathrm{hull} \le 0.1$~eV/atom where known). Of 64{,}635 records, 47{,}614 carry a net-moment
 ordering, 19{,}280 of those are noncentrosymmetric, and 1{,}864 also contain a heavy-SOC element
 (Materials Project 768, JARVIS 537, AFLOW 392, 2DMatPedia 77, NOMAD 53, OQMD 35, MAGNDATA 2;
@@ -235,13 +247,15 @@ ranks 1--663, so it is a sample of the funnel's DMI-compatible population, not o
 For the top 100 screened candidates per source, structures were backfilled via each source's
 own public data-access method (298 of 300 attempted backfills succeeded; two AFLOW records failed on
 repeated TLS errors from the AFLUX endpoint) and re-relaxed with a MACE
-foundation-model potential~\cite{batatia2022}, fine-tuned on this project's harmonized dataset via multihead
+foundation-model potential~\cite{batatia2022,batatia2023}, fine-tuned on this project's harmonized dataset via multihead
 training (a replay head sampling 20{,}000 configurations from the original pretraining distribution to
 avoid catastrophic forgetting), as an independent consistency check against each source's own DFT
 relaxation. The base model is MACE-MP-0 \texttt{small} (\texttt{num\_channels}$=128$, \texttt{max\_L}$=1$,
-two interaction layers, $r_\mathrm{max}=5.0$~\AA); the relaxations use the Stage-2/SWA checkpoint of the
-fine-tune with its default head, and are static FIRE optimizations in ASE (no molecular dynamics anywhere
-in this work). All 298 relaxations converged (max force $\le 0.05$~eV/\AA) with a median relaxation-energy
+two interaction layers, $r_\mathrm{max}=5.0$~\AA)~\cite{batatia2023}; the relaxations use the Stage-2/SWA
+checkpoint of the fine-tune with its default head, and are static FIRE~\cite{bitzek2006} optimizations in
+ASE~\cite{larsen2017} (no molecular dynamics anywhere in this work). Other universal potentials trained on
+Materials Project data, such as M3GNet~\cite{chen2022} and CHGNet~\cite{deng2023}, would serve the same
+consistency-check purpose. All 298 relaxations converged (max force $\le 0.05$~eV/\AA) with a median relaxation-energy
 shift of 0.0009~eV/atom relative to the source structure, indicating strong agreement between the
 fine-tuned potential and each source's own DFT. Classifier confidence and MACE relaxation-consistency were
 merged into a final ranking (converged $\to$ hull-stable $\to$ smallest relaxation shift $\to$ classifier
@@ -253,11 +267,16 @@ For a subset of shortlisted candidates carrying an \texttt{ordering\_source=grou
 \texttt{confidence=1.0} label from Materials Project (i.e., MP's own recorded ordering, not a
 classifier prediction), we apply the same collinear magnetic-ordering energy-mapping approach behind MP's
 own workflow~\cite{horton2019}: symmetry-distinct FM and AFM spin configurations are enumerated with
-\texttt{pymatgen.MagneticStructureEnumerator} (backed by \texttt{enumlib}); VASP inputs are generated with
-\texttt{MPRelaxSet} -- MP's own exchange-correlation functional, GGA+U parameters (e.g. LDAUU$=5.3$~eV on
-Fe), plane-wave cutoff (520~eV), and $k$-point convention -- overriding only the initial MAGMOM per
-configuration; and each configuration is relaxed to convergence (VASP~6.4.3; \texttt{MPRelaxSet}
-defaults ISIF$=3$, ISMEAR$=-5$, EDIFF$=5\times10^{-5}$~eV per atom, i.e.\ 0.05~\meVat). This choice keeps
+\texttt{pymatgen.MagneticStructureEnumerator}~\cite{ong2013} (backed by \texttt{enumlib}); VASP inputs are
+generated with
+\texttt{MPRelaxSet} -- MP's own PBE exchange-correlation functional~\cite{perdew1996}, GGA+U
+parameters~\cite{dudarev1998,wang2006,jain2011} (e.g. LDAUU$=5.3$~eV on Fe), plane-wave cutoff (520~eV), and
+Monkhorst--Pack $k$-point convention~\cite{monkhorst1976} -- overriding only the initial MAGMOM per
+configuration; and each configuration is relaxed to convergence within Kohn--Sham density-functional
+theory~\cite{hohenberg1964,kohn1965} as implemented in VASP~6.4.3~\cite{kresse1996} with the
+projector-augmented-wave method~\cite{blochl1994,kresse1999} (\texttt{MPRelaxSet}
+defaults ISIF$=3$, ISMEAR$=-5$, i.e.\ the tetrahedron method with Bl\"ochl
+corrections~\cite{blochl1994tet}, EDIFF$=5\times10^{-5}$~eV per atom, i.e.\ 0.05~\meVat). This choice keeps
 the resulting energies directly comparable to MP's own stored values rather than constituting an arbitrary
 independent DFT recipe. Beyond VASP's own convergence flag, every calculation was audited in two further
 ways: the final RMS charge-density residual was checked (the ``EDIFF is reached'' banner can fire on a
@@ -313,7 +332,9 @@ settings are applied to every ordering of that compound identically.
 \subsection{Exchange and DMI extraction for mp-754090}
 
 For Li$_4$Fe$_2$TeWO$_{12}$ (mp-754090), confirmed FM by the protocol above, we additionally extract
-effective spin-Hamiltonian parameters directly from DFT. The isotropic nearest-shell exchange constant is
+effective spin-Hamiltonian parameters directly from DFT by energy mapping, the standard route from the total
+energies of constructed spin configurations to Heisenberg
+parameters~\cite{liechtenstein1987,xiang2011,xiang2013}. The isotropic nearest-shell exchange constant is
 obtained from the tight same-cell FM/AFM pair used for the ordering verdict (both orderings relaxed in the
 same cell, which is the fixed lattice a Heisenberg $J$ is defined on). The Fe sublattice of the
 rock-salt-derived Li$_4$Fe$_2$TeWO$_{12}$ structure is close-packed: each of the two Fe sites (Fe0, Fe1)
@@ -344,8 +365,10 @@ another. We first checked whether mp-754090's crystal symmetry forces $D=0$ via 
 center at the bond midpoint is sufficient to forbid DMI exactly, at zero DFT cost)~\cite{moriya1960}: the
 specific Li/Fe/Te/W cation ordering in this structure reduces the space group to $P1$, with no symmetry
 operation beyond the identity, so no such shortcut applies and a real calculation is required. We then ran
-two static, constrained noncollinear-spin+spin-orbit-coupling calculations from the relaxed FM structure,
-using the penalty-energy method (\texttt{I\_CONSTRAINED\_M=1}, constraining moment direction only) to hold
+two static, constrained noncollinear-spin+spin-orbit-coupling calculations from the relaxed FM structure --
+the established route to a first-principles DMI~\cite{heide2008,freimuth2014} -- within unconstrained
+noncollinear PAW magnetism~\cite{hobbs2000}, using the penalty-energy method~\cite{ma2015}
+(\texttt{I\_CONSTRAINED\_M=1}, constraining moment direction only) to hold
 Fe0 along $+\hat{z}$ and Fe1 along $+\hat{x}$ (canted$_+$) or $-\hat{x}$ (canted$_-$) -- i.e. $\theta=\pm
 90^\circ$ canting in the $xz$-plane, an arbitrary but fixed reference axis since $P1$ symmetry does not
 privilege any particular plane. The moment constraint held essentially exactly in both calculations (Fe1
@@ -410,7 +433,7 @@ the spiral, their magnitudes agreeing between chiralities to $0.001\,\mu_B$.
 
 The DFT-derived $J=2.78$~meV, with no fitting or rescaling, parameterizes a twelve-neighbor Heisenberg
 Hamiltonian for the Fe sublattice of mp-754090 (framework Li/Te/W/O sites carry no spin and are omitted
-from the geometry), implemented in LAMMPS-SPIN~\cite{tranchida2018} via the \texttt{spin/exchange} pair
+from the geometry), implemented in LAMMPS-SPIN~\cite{tranchida2018} within LAMMPS~\cite{plimpton1995,thompson2022} via the \texttt{spin/exchange} pair
 style (which counts each bond once, matching the convention of the DFT extraction) with a 5.5~\AA{} cutoff
 that captures all twelve Fe--Fe bonds per site. \texttt{spin/exchange} uses the Bethe--Slater radial form
 $J(r)=4a\,(r/d)^2 e^{-(r/d)^2}$ (with its $b$ parameter set to zero); $d=5.274$~\AA{} is solved so that
@@ -431,7 +454,9 @@ arbitrary but representative placement of a 3.5\% antisymmetric term) at four te
 difference. The model is run on a $16\times8\times8$ replication (2048 spins) of the two-atom Fe primitive
 cell, with periodic boundaries and a rigid (spin-only) lattice. Single-ion anisotropy is set to zero
 (Sec.~\ref{sec:limitations}). Each run starts from the fully aligned FM ground state and is evolved
-under Langevin spin dynamics ($dt=0.1$~fs) for 200{,}000 steps (20~ps) at twelve temperatures from 10 to
+under Langevin spin dynamics ($dt=0.1$~fs) -- stochastic Landau--Lifshitz--Gilbert dynamics of classical
+spins~\cite{gilbert2004,ma2011}, the standard atomistic approach to finite-temperature
+magnetism~\cite{skubic2008,evans2014} -- for 200{,}000 steps (20~ps) at twelve temperatures from 10 to
 400~K; the normalized net magnetization $|m|=|\sum_i\hat{s}_i|/N$ is averaged over the second half of
 each run and over three independent thermostat seeds per temperature. The Langevin damping is set to
 $\alpha=1$: the equilibrium $|m|(T)$ does not depend on $\alpha$, but the thermalization time of the
@@ -493,7 +518,12 @@ below FM. The two shortlisted-but-labeled-FiM candidates (mp-22972, mp-551086) a
 FM alternative only, since a collinear FM/AFM enumeration cannot represent MP's recorded ferrimagnetic
 configuration directly; both have a collinear configuration below FM (an AFM cell 0.46~\meVat\ below the
 FM twin of the same cell for mp-22972, a ferrimagnetic Fe/Cr cell 0.80~\meVat\ below FM for mp-551086,
-both from tight pairs).
+both from tight pairs). That antiferromagnetic alignment wins this often in this particular set is
+unsurprising on chemical grounds: 23 of the 26 candidates are oxides, in which the magnetic cations are
+bridged by oxygen rather than being in direct contact -- the geometry for which
+Goodenough--Kanamori--Anderson superexchange between half-filled $d$ shells favours antiparallel
+alignment~\cite{anderson1950,goodenough1955,kanamori1959}. A workflow that initializes every relaxation
+ferromagnetically therefore starts each of these compounds from the chemically less likely state.
 
 The tight pairs changed four verdicts, in both directions. Zn$_2$FeWO$_6$ (mp-1047414), degenerate at
 0.10~\meVat\ under the loose protocol, is AFM by 0.17--0.19~\meVat\ in both of its same-cell pairs;
@@ -528,7 +558,8 @@ that MP's FM label cannot be taken at face value for candidates drawn from exact
 is precisely the population that DMI/skyrmion-material screening pipelines -- including the one used to
 generate this shortlist -- select from by construction.
 
-A provenance check against MP's own metadata (\texttt{theoretical} flag and ICSD cross-references, queried
+A provenance check against MP's own metadata (\texttt{theoretical} flag and ICSD~\cite{hellenbrandt2004}
+cross-references, queried
 2026-09-20) adds a caveat that applies to the shortlist as a whole rather than to the ordering verdicts:
 24 of the 26 staged candidates are flagged theoretical -- hypothetical structures generated by MP's
 substitution and prototype workflows, 23 of them with no ICSD entry at all (mp-551086 carries an ICSD
@@ -607,7 +638,7 @@ finite-size-scaling analysis below sharpens this to a single temperature. Two ze
 Hamiltonian bracket this: the mean-field value $T_c^{\rm MF} = zJ/3k_B = 129$~K ($z=12$) and the
 classical-Heisenberg fcc value $k_BT_c \approx 3.18\,J$~\cite{chen1993}, i.e.\ $\approx103$~K, which is the
 appropriate comparison for a twelve-coordinated close-packed classical unit-spin model. An independent
-Metropolis Monte Carlo calculation of the same Hamiltonian on the same 2048-spin lattice
+Metropolis Monte Carlo calculation~\cite{metropolis1953} of the same Hamiltonian on the same 2048-spin lattice
 (\texttt{src/spin\_dynamics/mc\_check\_mp754090.py}; 2000 equilibration $+$ 2000 measurement sweeps)
 gives $|m| = 0.967$, $0.912$, $0.806$, $0.661$, $0.37\pm0.03$ and $0.07\pm0.02$ at 10, 25, 50, 75, 100 and
 125~K, i.e.\ agrees with the Langevin sweep to within 0.002 below 100~K and within the seed spread at
@@ -640,7 +671,7 @@ showing the collapse sharpening with $N$.}
 A finite-size-scaling analysis pins this transition temperature down instead of bracketing it. Repeating
 the sweep at $N=256$, 864, 2048 and 4000 spins with the box aspect ratio held fixed (so that every size
 sees the same twelve-neighbor shell; \texttt{src/spin\_dynamics/run\_fss.sh}) and forming the
-fourth-order Binder cumulant $U_4 = 1-\langle m^4\rangle/3\langle m^2\rangle^2$ of the three-component
+fourth-order Binder cumulant~\cite{binder1981} $U_4 = 1-\langle m^4\rangle/3\langle m^2\rangle^2$ of the three-component
 order parameter, which tends to $2/3$ in the ordered phase and $4/9$ in the disordered one and is
 size-independent at $T_c$, the $U_4(T)$ curves of consecutive sizes cross at $99.5$, $101.3$ and
 $102.7$~K (Fig.~\ref{fig:fss754090}, \texttt{outputs/mp754090\_fss.csv}). The crossings drift upward
@@ -932,11 +963,27 @@ antiferromagnetics, J. Phys. Chem. Solids \textbf{4}, 241 (1958).
 \bibitem{moriya1960} T. Moriya, Anisotropic superexchange interaction and weak ferromagnetism, Phys. Rev.
 \textbf{120}, 91 (1960).
 
+\bibitem{bogdanov1994} A. Bogdanov and A. Hubert, Thermodynamically stable magnetic vortex states in magnetic crystals, J. Magn. Magn. Mater. \textbf{138}, 255 (1994).
+
 \bibitem{fert2013} A. Fert, V. Cros, and J. Sampaio, Skyrmions on the track, Nat. Nanotechnol. \textbf{8},
 152 (2013).
 
 \bibitem{nagaosa2013} N. Nagaosa and Y. Tokura, Topological properties and dynamics of magnetic skyrmions,
 Nat. Nanotechnol. \textbf{8}, 899 (2013).
+
+\bibitem{muhlbauer2009} S. M\"uhlbauer, B. Binz, F. Jonietz, C. Pfleiderer, A. Rosch, A. Neubauer, R. Georgii, and P. B\"oni, Skyrmion Lattice in a Chiral Magnet, Science \textbf{323}, 915 (2009).
+
+\bibitem{yu2010} X. Z. Yu, Y. Onose, N. Kanazawa, J. H. Park, J. H. Han, Y. Matsui, N. Nagaosa, and Y. Tokura, Real-space observation of a two-dimensional skyrmion crystal, Nature \textbf{465}, 901 (2010).
+
+\bibitem{heinze2011} S. Heinze, K. von Bergmann, M. Menzel, J. Brede, A. Kubetzka, R. Wiesendanger, G. Bihlmayer, and S. Bl\"ugel, Spontaneous atomic-scale magnetic skyrmion lattice in two dimensions, Nat. Phys. \textbf{7}, 713 (2011).
+
+\bibitem{romming2013} N. Romming, C. Hanneken, M. Menzel, J. E. Bickel, B. Wolter, K. von Bergmann, A. Kubetzka, and R. Wiesendanger, Writing and Deleting Single Magnetic Skyrmions, Science \textbf{341}, 636 (2013).
+
+\bibitem{woo2016} S. Woo, K. Litzius, B. Kr\"uger, \emph{et al.}, Observation of room-temperature magnetic skyrmions and their current-driven dynamics in ultrathin metallic ferromagnets, Nat. Mater. \textbf{15}, 501 (2016).
+
+\bibitem{fert2017} A. Fert, N. Reyren, and V. Cros, Magnetic skyrmions: advances in physics and potential applications, Nat. Rev. Mater. \textbf{2}, 17031 (2017).
+
+\bibitem{tokura2021} Y. Tokura and N. Kanazawa, Magnetic skyrmion materials, Chem. Rev. \textbf{121}, 2857 (2021).
 
 \bibitem{jain2013} A. Jain, S. P. Ong, G. Hautier, W. Chen, W. D. Richards, S. Dacek, S. Cholia, D. Gunter,
 D. Skinner, G. Ceder, and K. A. Persson, Commentary: The Materials Project: A materials genome approach to
@@ -957,20 +1004,126 @@ Crystallogr. \textbf{49}, 1750 (2016).
 Madariaga, MAGNDATA: towards a database of magnetic structures. II. The incommensurate case, J. Appl.
 Crystallogr. \textbf{49}, 1941 (2016).
 
+\bibitem{ong2015} S. P. Ong, S. Cholia, A. Jain, M. Brafman, D. Gunter, G. Ceder, and K. A. Persson, The Materials Application Programming Interface (API): A simple, flexible and efficient API for materials data based on REpresentational State Transfer (REST) principles, Comput. Mater. Sci. \textbf{97}, 209 (2015).
+
+\bibitem{choudhary2020} K. Choudhary, K. F. Garrity, A. C. E. Reid, \emph{et al.}, The joint automated repository for various integrated simulations (JARVIS) for data-driven materials design, npj Comput. Mater. \textbf{6}, 173 (2020).
+
+\bibitem{curtarolo2012} S. Curtarolo, W. Setyawan, G. L. W. Hart, \emph{et al.}, AFLOW: An automatic framework for high-throughput materials discovery, Comput. Mater. Sci. \textbf{58}, 218 (2012).
+
+\bibitem{zhou2019} J. Zhou, L. Shen, M. D. Costa, \emph{et al.}, 2DMatPedia, an open computational database of two-dimensional materials from top-down and bottom-up approaches, Sci. Data \textbf{6}, 86 (2019).
+
+\bibitem{saal2013} J. E. Saal, S. Kirklin, M. Aykol, B. Meredig, and C. Wolverton, Materials Design and Discovery with High-Throughput Density Functional Theory: The Open Quantum Materials Database (OQMD), JOM \textbf{65}, 1501 (2013).
+
+\bibitem{kirklin2015} S. Kirklin, J. E. Saal, B. Meredig, A. Thompson, J. W. Doak, M. Aykol, S. R\"uhl, and C. Wolverton, The Open Quantum Materials Database (OQMD): assessing the accuracy of DFT formation energies, npj Comput. Mater. \textbf{1}, 15010 (2015).
+
+\bibitem{draxl2018} C. Draxl and M. Scheffler, NOMAD: The FAIR concept for big data-driven materials science, MRS Bull. \textbf{43}, 676 (2018).
+
+\bibitem{ke2017} G. Ke, Q. Meng, T. Finley, T. Wang, W. Chen, W. Ma, Q. Ye, and T.-Y. Liu, LightGBM: A highly
+efficient gradient boosting decision tree, Adv. Neural Inf. Process. Syst. \textbf{30} (2017).
+
+\bibitem{ward2016} L. Ward, A. Agrawal, A. Choudhary, and C. Wolverton, A general-purpose machine learning framework for predicting properties of inorganic materials, npj Comput. Mater. \textbf{2}, 16028 (2016).
+
+\bibitem{schmidt2019} J. Schmidt, M. R. G. Marques, S. Botti, and M. A. L. Marques, Recent advances and applications of machine learning in solid-state materials science, npj Comput. Mater. \textbf{5}, 83 (2019).
+
+\bibitem{nelson2019} J. Nelson and S. Sanvito, Predicting the Curie temperature of ferromagnets using machine learning, Phys. Rev. Mater. \textbf{3}, 104405 (2019).
+
+\bibitem{court2020} C. J. Court and J. M. Cole, Magnetic and superconducting phase diagrams and transition temperatures predicted using text mining and machine learning, npj Comput. Mater. \textbf{6}, 18 (2020).
+
+\bibitem{frey2020} N. C. Frey, M. K. Horton, J. M. Munro, S. M. Griffin, K. A. Persson, and V. B. Shenoy, High-throughput search for magnetic and topological order in transition metal oxides, Sci. Adv. \textbf{6}, eabd1076 (2020).
+
+\bibitem{kabiraj2020} A. Kabiraj, M. Kumar, and S. Mahapatra, High-throughput discovery of high Curie point two-dimensional ferromagnetic materials, npj Comput. Mater. \textbf{6}, 35 (2020).
+
 \bibitem{fert1980} A. Fert and P. M. Levy, Role of anisotropic exchange interactions in determining the
 properties of spin-glasses, Phys. Rev. Lett. \textbf{44}, 1538 (1980).
+
+\bibitem{crepieux1998} A. Cr\'epieux and C. Lacroix, Dzyaloshinsky--Moriya interactions induced by symmetry breaking at a surface, J. Magn. Magn. Mater. \textbf{182}, 341 (1998).
+
+\bibitem{yang2015} H. Yang, A. Thiaville, S. Rohart, A. Fert, and M. Chshiev, Anatomy of Dzyaloshinskii-Moriya interaction at Co/Pt interfaces, Phys. Rev. Lett. \textbf{115}, 267210 (2015).
 
 \bibitem{batatia2022} I. Batatia, D. P. Kov\'acs, G. N. C. Simm, C. Ortner, and G. Cs\'anyi, MACE: Higher
 order equivariant message passing neural networks for fast and accurate force fields, Adv. Neural Inf.
 Process. Syst. \textbf{35} (2022).
 
-\bibitem{chen1993} K. Chen, A. M. Ferrenberg, and D. P. Landau, Static critical behavior of
-three-dimensional classical Heisenberg models: A high-resolution Monte Carlo study, Phys. Rev. B
-\textbf{48}, 3249 (1993).
+\bibitem{batatia2023} I. Batatia, P. Benner, Y. Chiang, \emph{et al.}, A foundation model for atomistic
+materials chemistry, arXiv:2401.00096 (2023).
+
+\bibitem{bitzek2006} E. Bitzek, P. Koskinen, F. G\"ahler, M. Moseler, and P. Gumbsch, Structural Relaxation Made Simple, Phys. Rev. Lett. \textbf{97}, 170201 (2006).
+
+\bibitem{larsen2017} A. Hjorth Larsen, J. J\o{}rgen Mortensen, J. Blomqvist, \emph{et al.}, The atomic simulation environment---a Python library for working with atoms, J. Phys.: Condens. Matter \textbf{29}, 273002 (2017).
+
+\bibitem{chen2022} C. Chen and S. P. Ong, A universal graph deep learning interatomic potential for the periodic table, Nat. Comput. Sci. \textbf{2}, 718 (2022).
+
+\bibitem{deng2023} B. Deng, P. Zhong, K. Jun, J. Riebesell, K. Han, C. J. Bartel, and G. Ceder, CHGNet as a pretrained universal neural network potential for charge-informed atomistic modelling, Nat. Mach. Intell. \textbf{5}, 1031 (2023).
+
+\bibitem{ong2013} S. P. Ong, W. D. Richards, A. Jain, \emph{et al.}, Python Materials Genomics (pymatgen): A robust, open-source python library for materials analysis, Comput. Mater. Sci. \textbf{68}, 314 (2013).
+
+\bibitem{perdew1996} J. P. Perdew, K. Burke, and M. Ernzerhof, Generalized Gradient Approximation Made Simple, Phys. Rev. Lett. \textbf{77}, 3865 (1996).
+
+\bibitem{dudarev1998} S. L. Dudarev, G. A. Botton, S. Y. Savrasov, C. J. Humphreys, and A. P. Sutton, Electron-energy-loss spectra and the structural stability of nickel oxide: An LSDA+U study, Phys. Rev. B \textbf{57}, 1505 (1998).
+
+\bibitem{wang2006} L. Wang, T. Maxisch, and G. Ceder, Oxidation energies of transition metal oxides within the GGA+U framework, Phys. Rev. B \textbf{73}, 195107 (2006).
+
+\bibitem{jain2011} A. Jain, G. Hautier, S. P. Ong, C. J. Moore, C. C. Fischer, K. A. Persson, and G. Ceder, Formation enthalpies by mixing GGA and GGA+U calculations, Phys. Rev. B \textbf{84}, 045115 (2011).
+
+\bibitem{monkhorst1976} H. J. Monkhorst and J. D. Pack, Special points for Brillouin-zone integrations, Phys. Rev. B \textbf{13}, 5188 (1976).
+
+\bibitem{hohenberg1964} P. Hohenberg and W. Kohn, Inhomogeneous Electron Gas, Phys. Rev. \textbf{136}, B864 (1964).
+
+\bibitem{kohn1965} W. Kohn and L. J. Sham, Self-Consistent Equations Including Exchange and Correlation Effects, Phys. Rev. \textbf{140}, A1133 (1965).
+
+\bibitem{kresse1996} G. Kresse and J. Furthm\"uller, Efficient iterative schemes for ab initio total-energy calculations using a plane-wave basis set, Phys. Rev. B \textbf{54}, 11169 (1996).
+
+\bibitem{blochl1994} P. E. Bl\"ochl, Projector augmented-wave method, Phys. Rev. B \textbf{50}, 17953 (1994).
+
+\bibitem{kresse1999} G. Kresse and D. Joubert, From ultrasoft pseudopotentials to the projector augmented-wave method, Phys. Rev. B \textbf{59}, 1758 (1999).
+
+\bibitem{blochl1994tet} P. E. Bl\"ochl, O. Jepsen, and O. K. Andersen, Improved tetrahedron method for Brillouin-zone integrations, Phys. Rev. B \textbf{49}, 16223 (1994).
+
+\bibitem{liechtenstein1987} A. I. Liechtenstein, M. I. Katsnelson, V. P. Antropov, and V. A. Gubanov, Local spin density functional approach to the theory of exchange interactions in ferromagnetic metals and alloys, J. Magn. Magn. Mater. \textbf{67}, 65 (1987).
+
+\bibitem{xiang2011} H. J. Xiang, E. J. Kan, S.-H. Wei, M. Whangbo, and X. G. Gong, Predicting the spin-lattice order of frustrated systems from first principles, Phys. Rev. B \textbf{84}, 224429 (2011).
+
+\bibitem{xiang2013} H. Xiang, C. Lee, H.-J. Koo, X. Gong, and M.-H. Whangbo, Magnetic properties and energy-mapping analysis, Dalton Trans. \textbf{42}, 823 (2013).
+
+\bibitem{heide2008} M. Heide, G. Bihlmayer, and S. Bl\"ugel, Dzyaloshinskii-Moriya interaction accounting for the orientation of magnetic domains in ultrathin films: Fe/W(110), Phys. Rev. B \textbf{78}, 140403 (2008).
+
+\bibitem{freimuth2014} F. Freimuth, S. Bl\"ugel, and Y. Mokrousov, Berry phase theory of Dzyaloshinskii--Moriya interaction and spin--orbit torques, J. Phys.: Condens. Matter \textbf{26}, 104202 (2014).
+
+\bibitem{hobbs2000} D. Hobbs, G. Kresse, and J. Hafner, Fully unconstrained noncollinear magnetism within the projector augmented-wave method, Phys. Rev. B \textbf{62}, 11556 (2000).
+
+\bibitem{ma2015} P.-W. Ma and S. L. Dudarev, Constrained density functional for noncollinear magnetism, Phys. Rev. B \textbf{91}, 054420 (2015).
 
 \bibitem{tranchida2018} J. Tranchida, S. J. Plimpton, P. Thibaudeau, and A. P. Thompson, Massively parallel
 symplectic algorithm for coupled magnetic spin dynamics and molecular dynamics, J. Comput. Phys.
 \textbf{372}, 406 (2018).
+
+\bibitem{plimpton1995} S. Plimpton, Fast Parallel Algorithms for Short-Range Molecular Dynamics, J. Comput. Phys. \textbf{117}, 1 (1995).
+
+\bibitem{thompson2022} A. P. Thompson, H. M. Aktulga, R. Berger, \emph{et al.}, LAMMPS - a flexible simulation tool for particle-based materials modeling at the atomic, meso, and continuum scales, Comput. Phys. Commun. \textbf{271}, 108171 (2022).
+
+\bibitem{gilbert2004} T. L. Gilbert, A phenomenological theory of damping in ferromagnetic materials, IEEE Trans. Magn. \textbf{40}, 3443 (2004).
+
+\bibitem{ma2011} P.-W. Ma and S. L. Dudarev, Langevin spin dynamics, Phys. Rev. B \textbf{83}, 134418 (2011).
+
+\bibitem{skubic2008} B. Skubic, J. Hellsvik, L. Nordstr\"om, and O. Eriksson, A method for atomistic spin dynamics simulations: implementation and examples, J. Phys.: Condens. Matter \textbf{20}, 315203 (2008).
+
+\bibitem{evans2014} R. F. L. Evans, W. J. Fan, P. Chureemart, T. A. Ostler, M. O. A. Ellis, and R. W. Chantrell, Atomistic spin model simulations of magnetic nanomaterials, J. Phys.: Condens. Matter \textbf{26}, 103202 (2014).
+
+\bibitem{anderson1950} P. W. Anderson, Antiferromagnetism. Theory of Superexchange Interaction, Phys. Rev. \textbf{79}, 350 (1950).
+
+\bibitem{goodenough1955} J. B. Goodenough, Theory of the role of covalence in the perovskite-type manganites [La,M(II)]MnO$_3$, Phys. Rev. \textbf{100}, 564 (1955).
+
+\bibitem{kanamori1959} J. Kanamori, Superexchange interaction and symmetry properties of electron orbitals, J. Phys. Chem. Solids \textbf{10}, 87 (1959).
+
+\bibitem{hellenbrandt2004} M. Hellenbrandt, The Inorganic Crystal Structure Database (ICSD)---Present and Future, Crystallogr. Rev. \textbf{10}, 17 (2004).
+
+\bibitem{chen1993} K. Chen, A. M. Ferrenberg, and D. P. Landau, Static critical behavior of
+three-dimensional classical Heisenberg models: A high-resolution Monte Carlo study, Phys. Rev. B
+\textbf{48}, 3249 (1993).
+
+\bibitem{metropolis1953} N. Metropolis, A. W. Rosenbluth, M. N. Rosenbluth, A. H. Teller, and E. Teller, Equation of State Calculations by Fast Computing Machines, J. Chem. Phys. \textbf{21}, 1087 (1953).
+
+\bibitem{binder1981} K. Binder, Finite size scaling analysis of ising model block distribution functions, Z. Phys. B \textbf{43}, 119 (1981).
 
 \end{thebibliography}
 
