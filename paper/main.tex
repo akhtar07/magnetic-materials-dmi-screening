@@ -262,6 +262,7 @@ merged into a final ranking (converged $\to$ hull-stable $\to$ smallest relaxati
 confidence); the resulting top-30 shortlist is the pool this work's DFT validation batch is drawn from.
 
 \subsection{DFT ordering-validation protocol}
+\label{sec:dftmethods}
 
 For a subset of shortlisted candidates carrying an \texttt{ordering\_source=ground\_truth},
 \texttt{confidence=1.0} label from Materials Project (i.e., MP's own recorded ordering, not a
@@ -319,11 +320,13 @@ cannot undo that -- whereas \emph{confirmed FM} and \emph{degenerate} require ev
 to have a valid energy. The 0.10~\meVat\ window is twice the per-atom EDIFF of the loose protocol.
 
 All five tungsten-bearing candidates in this batch initially failed to converge under MP's standard Hubbard
-correction (LDAUU$=6.2$~eV on W): tungsten here is formally W$^{6+}$, a nominally $d^0$ ion, and a large $U$
+correction (LDAUU$=6.2$~eV on W): tungsten in these oxides is typically W$^{6+}$, a nominally $d^0$ ion, and a large $U$
 applied to a near-empty $d$-shell leaves the self-consistent density with no restoring force, oscillating
 indefinitely rather than converging. Removing $U$ from tungsten (LDAUL$=-1$) entirely, applied uniformly
 across every ordering of the affected compound, converged all 18 corresponding production calculations
-cleanly on the first retry. These reruns also fix the cell shape and volume at MP's relaxed values
+cleanly on the first retry. One of the five is not $d^0$: in FeP$_6$(WO$_8$)$_3$ (mp-850225), charge
+balance with Fe$^{3+}$ and P$^{5+}$ requires W$^{5+}$ ($d^1$), and in the U-free runs each W carries
+0.78--0.86~$\mu_B$ antiparallel to Fe in the FM state (Sec.~\ref{sec:dftresults}). These reruns also fix the cell shape and volume at MP's relaxed values
 (ISIF$=2$, ions only) and use Gaussian smearing (ISMEAR$=0$, $\sigma=0.05$~eV; tetrahedron smearing for
 mp-755203) for SCF stability. This changes the absolute energy scale for those five candidates relative to
 MP's own U-inclusive value, but not the internal FM-vs-AFM comparison within each compound, since the same
@@ -506,7 +509,7 @@ degenerate rather than informative. Duplicate formulas are distinguished by thei
 
 Of the 26 candidates, all carrying an MP-recorded \texttt{ground\_truth}, confidence-1.0
 ferromagnetic label, 21 have their FM label overturned by a lower-energy antiferromagnetic or ferrimagnetic
-configuration (margins 0.19--24.68~\meVat), 3 are confirmed as the true FM ground state (1.24--2.92~\meVat\
+configuration (margins 0.19--24.68~\meVat), 3 are confirmed as the true FM ground state (1.24--2.23~\meVat\
 below the next-lowest configuration), and 2 (CaLaTaFeO$_6$ with AFM 0.10~\meVat\ below FM and
 Ba$_4$Ta$_{10}$FeO$_{30}$ at 0.00~\meVat, both from tight pairs) sit within 0.10~\meVat\ -- twice the
 per-atom electronic-convergence tolerance ($\mathrm{EDIFF}=5\times10^{-5}$~eV/atom) of the loose protocol
@@ -532,17 +535,22 @@ Ba$_4$Ta$_{10}$FeO$_{30}$ (mp-1228547), ``confirmed FM'' by 1.18~\meVat\ loosely
 enumerated ``AFM'' cells had flipped only the $d^0$ Ti site, is AFM by 0.80--1.30~\meVat\ in all four
 Fe-only supercells; and Tb$_6$FeBi$_2$ (mp-1079285) and FeP$_6$(WO$_8$)$_3$ (mp-850225) remain FM, with
 same-cell margins on the enumerated AFM configurations (3.25 and 3.38~\meVat) larger than the loose numbers
-(2.32 and 2.09) suggested -- although for mp-1079285 the inter-chain AFM orderings computed for its spin
-model (Sec.~\ref{sec:1079285results}) lie only 1.24--1.25~\meVat\ above FM and now set its margin. All
+(2.32 and 2.09) suggested -- although in both compounds an ordering computed later for the exchange
+model sets the margin: for mp-1079285 the inter-chain AFM orderings (Sec.~\ref{sec:1079285results}) lie
+only 1.24--1.25~\meVat\ above FM, and for mp-850225 a 68-atom cell with alternate Fe layers
+antiparallel along the hexagonal $c$ axis lies 1.81~\meVat\ above FM (Sec.~\ref{sec:limitations}).
+For mp-850225, ``FM'' describes the Fe sublattice, which is the only part the enumeration varies.
+The W$^{5+}$ moments (Sec.~\ref{sec:dftmethods}) align antiparallel to it, so the DFT ground state
+is strictly a collinear ferrimagnet, $2.0\,\mu_B$ per formula unit against $4.4\,\mu_B$ from Fe
+alone. All
 six loose-only overturns with $|$margin$|<2$~\meVat\ have been re-decided with tight pairs, and every one
 kept its sign: Ta$_2$FeO$_6$ (mp-1173143) $-0.41\to-0.41$, CrFe(BiO$_3$)$_2$ (mp-551086) $-0.85\to-0.80$,
 FeBi(SeO$_3$)$_3$ (mp-1197024) $-1.19\to-1.19$, CaFeReO$_6$ (mp-1343817) $-1.77\to-1.88$, the second
 Tb$_6$FeBi$_2$ entry (mp-22972) $-0.14\to-0.46$, and FeCu$_4$Re$_{14}$(Mo$_3$S$_{20}$)$_2$ (mp-682554)
-$-0.29\to-0.31$~\meVat. The last of these is the only pair that did not reach the force criterion: the
-two 130-atom relaxations were cut off at ionic steps 21--23 (maximum residual force 0.024 and
-0.036~eV/\AA\ against the $0.01$~eV/\AA\ target), but the total energy of each had been stationary to
-$10^{-6}$~eV over its last three steps, so the 0.31~\meVat\ gap (41~meV per cell) is quoted as
-provisional; its sign was never in doubt. A representative case, mp-861559 (TaFeO$_4$), illustrates
+$-0.29\to-0.31$~\meVat. The last of these, a pair of 130-atom relaxations first cut off short of the
+force criterion when the farm was stopped, was later continued to convergence (29 and 32 ionic steps,
+final maximum forces 0.006 and 0.010~eV/\AA); the gap moved from the 0.315~\meVat\ of the cut-off
+runs to 0.313~\meVat\ (40.7~meV per cell). A representative case, mp-861559 (TaFeO$_4$), illustrates
 the setup's internal consistency: its converged FM configuration reproduces MP's own recorded total
 magnetization to within $0.003\,\mu_B$ (30.00000 vs.\ $30.0022\,\mu_B$ for 36 atoms), ruling out a
 convention mismatch, while three symmetry-distinct AFM configurations all converge below it, the lowest by
@@ -586,8 +594,7 @@ entry is a hypothetical structure, and the margin shows no trend with hull dista
 \begin{table}[t]
 \centering
 \caption{Summary of DFT-validated ordering outcomes for the 26 candidates. ``Tight'' counts the verdicts
-whose deciding margin comes from a same-cell FM/AFM pair (Sec.~II.D), one of them (mp-682554) from a pair
-stopped just short of the force criterion and therefore quoted as provisional; the remaining verdicts rest on the loose
+whose deciding margin comes from a same-cell FM/AFM pair (Sec.~\ref{sec:dftmethods}); the remaining verdicts rest on the loose
 MP-recipe comparison, one of them with a margin below 2~\meVat\ (Sec.~\ref{sec:limitations}).}
 \label{tab:summary}
 \begin{tabular}{lcc}
@@ -595,10 +602,10 @@ MP-recipe comparison, one of them with a margin below 2~\meVat\ (Sec.~\ref{sec:l
 Outcome & Count & Tight \\
 \midrule
 MP FM label overturned (AFM/FiM) & 21 & 9 \\
-FM confirmed & 3 & 2 \\
+FM confirmed & 3 & 3 \\
 Degenerate ($\le 0.10$~\meVat) & 2 & 2 \\
 \midrule
-Total & 26 & 13 \\
+Total & 26 & 14 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -735,7 +742,7 @@ A same-cell check -- the $+-+-$ chain pattern in the $1\times4\times1$ cell, whi
 bonds ($\Delta E=8J_b$) and is compared with the FM member of the $++--$ pair -- gives
 $\Delta E=100.93$~meV per 36-atom cell, i.e.\ $J_b=12.62$~meV, 14\% below the $1\times2\times1$
 value (this relaxation was cut off at ionic step 24 with a maximum force of 0.015~eV/\AA\ and its energy
-stationary to $10^{-6}$~eV, so the number is provisional in the same sense as the mp-682554 pair). The
+stationary to $10^{-6}$~eV, so the number is provisional: energy-converged but short of the force criterion). The
 two pairs differ in cell and mesh -- the $1\times2\times1$ pair sits in the relaxed cell of the
 enumerated AFM configuration ($a=8.372$, $c=8.376$~\AA) with a mesh equivalent to 6 points along $b$ in
 the primitive cell, the $1\times4\times1$ pairs in the relaxed FM cell ($a=8.407$, $c=8.396$~\AA) with
@@ -890,8 +897,7 @@ a loose (ISIF=3, relaxed-lattice) pair alone carry a protocol uncertainty that t
 configurations bound at 1.3~\meVat. Only one of them has $|$margin$|<2$~\meVat\ (Li$_4$NbFe(WO$_6$)$_2$,
 $-0.54$), and it already has a tight pair on a second configuration that corroborates the sign
 ($-0.47$~\meVat). The six sub-2~\meVat\ overturns re-decided with tight pairs all kept their sign, with
-margins moving by at most 0.32~\meVat\ (Sec.~\ref{sec:dftresults}); the mp-682554 pair is force-unconverged
-(provisional) as stated there.
+margins moving by at most 0.32~\meVat\ (Sec.~\ref{sec:dftresults}).
 
 The mp-754090 DMI probe resolves one projection (the mean $D_y$ of the eight inequivalent
 inter-sublattice bonds, in an arbitrary lab frame fixed consistently across the two canted calculations)
@@ -904,9 +910,16 @@ calibrated DMI. The third confirmed ferromagnet, FeP$_6$(WO$_8$)$_3$ (mp-850225)
 rhombohedral cell, so its Fe sublattice is a Bravais lattice on which a two-sublattice canting probe
 sees no DMI at all (the $+\mathbf{t}$ and $-\mathbf{t}$ bonds contribute opposite
 $\mathbf{D}\cdot(\mathbf{S}_0\times\mathbf{S}_1)$); resolving its $D$ needs a spiral in the 102-atom
-hexagonal cell, which was designed but not run within this project's compute budget, and its two
-exchange shells (six in-plane 8.77~\AA{} and six out-of-plane 8.91~\AA{} bonds, $J_1+J_2=28.7$~meV from
-the same-cell pair) were likewise left unseparated. Single-ion anisotropy was not probed in any
+hexagonal cell. That spiral pair (noncollinear with spin-orbit coupling, Fe directions constrained, W
+moments free) was run, but in about 60 node-hours neither chirality reached self-consistency to the
+precision the extraction needs ($\Delta E=18\sin120^\circ D_z\approx15.6\,D_z$, i.e.\ about 1.6~meV
+for $D\sim0.1$~meV), so no DMI is quoted for this compound. Its two exchange shells, six in-plane
+8.77~\AA{} and six out-of-plane 8.91~\AA{} bonds, are separated by a second same-cell pair: with
+alternate hexagonal Fe layers antiparallel along $c$, every out-of-plane bond flips and no in-plane
+bond does, so $\Delta E=12J_2=123.2$~meV per 68-atom cell, giving $J_2=10.3$~meV and, with
+$8(J_1+J_2)=229.6$~meV from the first pair, $J_1=18.4$~meV, both ferromagnetic. The FM members of the
+two pairs (the same 68 atoms in different supercells) agree to 0.006~\meVat. Because the W$^{5+}$
+moments are free to follow the Fe, these are effective Fe--Fe couplings that include the W polarization. Single-ion anisotropy was not probed in any
 compound and is set to zero in the spin dynamics, for lack of any DFT or literature basis for a value.
 
 The magnetization sweeps are classical, unit-spin, rigid-lattice models with zero anisotropy. For
