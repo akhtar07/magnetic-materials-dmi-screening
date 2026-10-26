@@ -150,8 +150,8 @@ def load_dft(placeholder: bool, jb_pair: str = "3_afm"):
     rows = {r["pair"]: r for r in csv.DictReader(open(TIGHT_CSV)) if r["candidate_id"] == "mp-1079285"}
     pairs = ("3_afm", "2a", "2c", "4b") + (("2b_in_4b",) if jb_pair == "2b_in_4b" else ())
     for p in pairs:
-        # "provisional": afm_2b_in_4b was cut off by the 2026-09-21 farm cancellation at ionic step 24
-        # (max|F| 0.015 eV/A, TOTEN stationary to 1e-6 eV over the last three steps)
+        # "provisional" is still accepted, but afm_2b_in_4b is now "ok": cut off by the 2026-09-21 farm
+        # cancellation at ionic step 24, continued on 2026-10-26 to the force criterion (28 steps, 0.007 eV/A)
         if rows.get(p, {}).get("status") not in ("ok", "provisional"):
             sys.exit(f"tight pair mp-1079285/{p} not usable: {rows.get(p)}")
     # csv gap = E(FM) - E(AFM) per atom over the cell -> dE = E_AFM - E_FM per cell

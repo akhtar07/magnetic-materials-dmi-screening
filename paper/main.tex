@@ -744,20 +744,21 @@ difference of two energies computed with different $k$-meshes ($3\times3\times3$
 $1\times2\times1$ cell for $J_b$, $3\times2\times3$ on the $1\times4\times1$ cell for $\Delta E_{4b}$).
 A same-cell check -- the $+-+-$ chain pattern in the $1\times4\times1$ cell, which flips all four chain
 bonds ($\Delta E=8J_b$) and is compared with the FM member of the $++--$ pair -- gives
-$\Delta E=100.93$~meV per 36-atom cell, i.e.\ $J_b=12.62$~meV, 14\% below the $1\times2\times1$
-value (this relaxation was cut off at ionic step 24 with a maximum force of 0.015~eV/\AA\ and its energy
-stationary to $10^{-6}$~eV, so the number is provisional: energy-converged but short of the force criterion). The
+$\Delta E=100.45$~meV per 36-atom cell, i.e.\ $J_b=12.56$~meV, 14\% below the $1\times2\times1$
+value (the relaxation, first cut off at ionic step 24, was continued to the force criterion: 28 ionic
+steps, final maximum force 0.007~eV/\AA, lowering $\Delta E$ by 0.48~meV from the cut-off value). The
 two pairs differ in cell and mesh -- the $1\times2\times1$ pair sits in the relaxed cell of the
 enumerated AFM configuration ($a=8.372$, $c=8.376$~\AA) with a mesh equivalent to 6 points along $b$ in
 the primitive cell, the $1\times4\times1$ pairs in the relaxed FM cell ($a=8.407$, $c=8.396$~\AA) with
 8 -- so the spread is the cell-shape and $k$-convergence sensitivity of a metallic Fe chain, and it
 brackets the exchange model: with the same-cell $J_b$ the residual is
-$J_{2b}=4.31$~meV, $zJ=50.6$~meV and $T_c^{\rm MF}=196$~K, against $J_{2b}=3.31$, $zJ=52.6$~meV and
+$J_{2b}=4.34$~meV, $zJ=50.6$~meV and $T_c^{\rm MF}=196$~K, against $J_{2b}=3.31$, $zJ=52.6$~meV and
 $203$~K with the chain-pair value; $|\mathbf{D}|/J_b$ ranges over $0.67$--$0.78\%$. The sweep below uses
-the chain-pair parameters (both pairs of that model are force-converged); the same-cell model was swept
+the chain-pair parameters, the pair on which the ordering verdict and the earlier exchange analysis rest;
+the same-cell model was swept
 at 10, 100, 125, 150 and 200~K to check whether the 4\% change in $zJ$ moves the ordering bracket ---
-it does not: $|m|=0.975$, $0.668$, $0.497$, $0.108$ and $0.046$ (three seeds each, window drift
-$\le0.008$) against $0.975$, $0.672$, $0.509$, $0.128$ and $0.048$ for the chain-pair model at the same
+it does not: $|m|=0.975$, $0.668$, $0.497$, $0.124$ and $0.047$ (three seeds each, window drift
+$\le0.008$ except $+0.05$ at 150~K, the transition point, where the seed spread is $\pm0.016$) against $0.975$, $0.672$, $0.509$, $0.128$ and $0.048$ for the chain-pair model at the same
 five temperatures, so the collapse sits between 125 and 150~K in both parametrizations.
 
 \begin{figure}[t]

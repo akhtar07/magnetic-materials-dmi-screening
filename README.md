@@ -77,11 +77,10 @@ the DFT validation and spin-dynamics stages respectively and are not distributed
   configurations computed both ways the two protocols differ by up to 1.3 meV/atom, and of the six
   loose-only overturns with |margin| < 2 meV/atom re-decided with tight pairs (Batch D, 2026-09-21) all
   six kept their sign (mp-1173143, mp-551086, mp-1197024, mp-1343817, mp-22972, mp-682554). The
-  mp-682554 pair is `provisional` (status column of `outputs/dft_tight_validation.csv`): the farm job was
-  cancelled on 21 Sep with both 130-atom relaxations 2-3 ionic steps short of the 0.01 eV/Å force
-  criterion (max|F| 0.024/0.036 eV/Å, total energies stationary to 1e-6 eV over the last three steps);
-  `analyze_tight_pairs.py` accepts such a pair when forces are < 0.05 eV/Å and the energy drift is
-  < 0.05 meV/atom. The same cancellation dropped the mp-682554 5_afm production run (never started; the
+  mp-682554 pair, cut off when the farm job was cancelled on 21 Sep, was continued to the force
+  criterion on 2026-10-21 (29/32 ionic steps, max|F| 0.006/0.010 eV/Å; gap 0.313 meV/atom).
+  `analyze_tight_pairs.py` still accepts a `provisional` pair (forces < 0.05 eV/Å, energy drift
+  < 0.05 meV/atom), but no pair in the paper is provisional any more. The same cancellation dropped the mp-682554 5_afm production run (never started; the
   candidate is already overturned by 3_afm) and the mp-850225 c-stacked pair (`afm_cstack/fm_in_cstack`,
   staged by `src/dft/stage_mp850225_cstack.py` to separate the in-plane and out-of-plane exchange, dE = 12 J_2;
   `not run`). Per-candidate verdicts: `outputs/dft_verdicts.csv` (tight pairs:
@@ -119,8 +118,8 @@ the DFT validation and spin-dynamics stages respectively and are not distributed
   four seeds each. Re-deriving both crossings from the last quarter of each run instead of the last half
   leaves mp-754090 at 101.1 K but moves mp-1079285 to 135.2 K (all of it from the 2048x4000 pair);
   analyzing only the six 80 ps runs gives 139.6 K. The quoted ± are lower bounds on the uncertainty. J_b and J_2b there come from different cells/k-meshes
-  (1x2x1 with 3x3x3 vs 1x4x1 with 3x2x3); the same-cell +-+- pair (afm_2b_in_4b, provisional: cut off at
-  ionic step 24 with max|F| 0.015 eV/Å) gives J_b = 12.62 meV (14% lower), hence J_2b = 4.31, zJ = 50.6
+  (1x2x1 with 3x3x3 vs 1x4x1 with 3x2x3); the same-cell +-+- pair (afm_2b_in_4b, cut off at ionic step 24
+  and continued on 2026-10-26 to 28 steps, max|F| 0.007 eV/Å) gives J_b = 12.56 meV (14% lower), hence J_2b = 4.34, zJ = 50.6
   meV, T_c^MF = 196 K (`build_mp1079285_model.py --jb-pair 2b_in_4b --suffix _samecell` ->
   `outputs/mp1079285_samecell_spin_model.json`, sweep `outputs/mp1079285_samecell_mvt.csv`); the two
   values bracket J_b and |D|/J_b = 0.67-0.78%.
