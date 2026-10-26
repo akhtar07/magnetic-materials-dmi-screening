@@ -1,0 +1,14 @@
+epoch   0 loss 0.976 val bal 0.5303 (best 0.5303 @ 0) 27s
+epoch  10 loss 0.789 val bal 0.6027 (best 0.6305 @ 7) 325s
+epoch  20 loss 0.535 val bal 0.6527 (best 0.6527 @ 20) 648s
+epoch  30 loss 0.738 val bal 0.6700 (best 0.6700 @ 30) 986s
+epoch  40 loss 0.559 val bal 0.6494 (best 0.6700 @ 30) 1322s
+epoch  50 loss 0.465 val bal 0.6560 (best 0.6700 @ 30) 1659s
+epoch  60 loss 0.467 val bal 0.6572 (best 0.6702 @ 53) 1961s
+epoch  70 loss 0.407 val bal 0.6502 (best 0.6702 @ 53) 2244s
+epoch  80 loss 0.276 val bal 0.6480 (best 0.6702 @ 53) 2525s
+epoch  90 loss 0.168 val bal 0.6467 (best 0.6702 @ 53) 2806s
+epoch 100 loss 0.231 val bal 0.6463 (best 0.6702 @ 53) 3086s
+epoch 110 loss 0.104 val bal 0.6409 (best 0.6702 @ 53) 3367s
+epoch 119 loss 0.111 val bal 0.6326 (best 0.6702 @ 53) 3620s
+cgcnn_holdout_s2: test acc 0.5907 bal 0.6608

@@ -15,6 +15,11 @@ atomistic spin-dynamics simulation:
    AFLOW, MAGNDATA, 2DMatPedia, OQMD, NOMAD) into one 64,635-record schema.
 2. **`src/baseline/`** — a LightGBM magnetic-ordering (FM/AFM/FiM/NM) classifier, trained on
    MAGNDATA ground truth, using composition + structural features.
+   **`src/gnn/`** compares it, on one shared split, with graph neural networks: a CGCNN trained from
+   scratch (PyTorch Geometric, three seeds) and LightGBM probes of frozen MACE-MP-0 embeddings, alone
+   and appended to the LightGBM features (`build_graphs.py` → `train_cgcnn.py`, `mace_embed.py` →
+   `train_heads.py` → `compare_models.py` → `outputs/classifier_comparison.csv`). The screening itself
+   uses the LightGBM classifier.
 3. **`src/ranking/`** — filters the harmonized database for DMI-compatible candidates
    (net moment, noncentrosymmetric space group, heavy spin-orbit-coupling element, hull stability),
    backfills structures, and ranks by MACE-relaxation consistency.

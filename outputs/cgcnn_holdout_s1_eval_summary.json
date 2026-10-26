@@ -1,0 +1,74 @@
+{
+  "accuracy": 0.6612204999301774,
+  "balanced_accuracy": 0.6502192347747799,
+  "n_test": 7161,
+  "classes": [
+    "AFM",
+    "FM",
+    "FiM",
+    "NM"
+  ],
+  "recall": {
+    "AFM": 0.5686546463245492,
+    "FM": 0.6798561151079137,
+    "FiM": 0.5842696629213483,
+    "NM": 0.7680965147453083
+  },
+  "per_source": {
+    "AFLOW": {
+      "n": 1,
+      "accuracy": 0.0,
+      "balanced_accuracy": 0.0
+    },
+    "MAGNDATA": {
+      "n": 369,
+      "accuracy": 0.5934959349593496,
+      "balanced_accuracy": 0.4920597726487048
+    },
+    "MaterialsProject": {
+      "n": 6791,
+      "accuracy": 0.6649977911942276,
+      "balanced_accuracy": 0.6416127035343426
+    }
+  },
+  "confusion_matrix": {
+    "rows_true_cols_pred": [
+      "AFM",
+      "FM",
+      "FiM",
+      "NM"
+    ],
+    "counts": [
+      [
+        410,
+        220,
+        71,
+        20
+      ],
+      [
+        562,
+        3024,
+        654,
+        208
+      ],
+      [
+        94,
+        370,
+        728,
+        54
+      ],
+      [
+        10,
+        115,
+        48,
+        573
+      ]
+    ]
+  },
+  "n_train": 25789,
+  "n_val": 2866,
+  "best_epoch": 67,
+  "val_balanced_accuracy": 0.6913580124192156,
+  "seed": 1,
+  "holdout_dft": true
+}

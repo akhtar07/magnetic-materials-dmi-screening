@@ -1,0 +1,20 @@
+/home/faiz/softwares/mambaforge3/envs/magnetic-acq/lib/python3.11/site-packages/sklearn/metrics/_classification.py:614: UserWarning: A single label was found in 'y_true' and 'y_pred'. For the confusion matrix to have the correct shape, use the 'labels' parameter to pass all known labels.
+  warnings.warn(
+/home/faiz/softwares/mambaforge3/envs/magnetic-acq/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+/home/faiz/softwares/mambaforge3/envs/magnetic-acq/lib/python3.11/site-packages/sklearn/metrics/_classification.py:614: UserWarning: A single label was found in 'y_true' and 'y_pred'. For the confusion matrix to have the correct shape, use the 'labels' parameter to pass all known labels.
+  warnings.warn(
+/home/faiz/softwares/mambaforge3/envs/magnetic-acq/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+/home/faiz/softwares/mambaforge3/envs/magnetic-acq/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+/home/faiz/softwares/mambaforge3/envs/magnetic-acq/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+/home/faiz/softwares/mambaforge3/envs/magnetic-acq/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+/home/faiz/softwares/mambaforge3/envs/magnetic-acq/lib/python3.11/site-packages/sklearn/metrics/_classification.py:2939: UserWarning: y_pred contains classes not in y_true
+  warnings.warn("y_pred contains classes not in y_true")
+lightgbm_v2 (graph subset, n=7161): acc 0.6738 bal 0.6796 MAGNDATA bal 0.5600
+  lightgbm_v2 refit on all 7,193: acc 0.6740 bal 0.6802
+mace_lgbm (graph subset, n=7161): acc 0.6963 bal 0.6830 MAGNDATA bal 0.5331
+hybrid_lgbm (graph subset, n=7161): acc 0.7460 bal 0.7170 MAGNDATA bal 0.5510

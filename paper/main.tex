@@ -116,7 +116,15 @@ OQMD~\cite{saal2013,kirklin2015} and NOMAD~\cite{draxl2018} -- were merged into 
 composition, global-structure and local-magnetic-geometry features, which reaches 67.4\% accuracy (68.0\%
 balanced accuracy) on a stratified held-out set of 7{,}193 records (Supplementary Fig.~\ref{figS:classifier}).
 Its dominant confusion is between FM and ferrimagnetic (FiM), the two net-moment classes that the screening treats
-identically.
+identically. Graph neural networks trained and tested on the same split -- a crystal graph convolutional network
+learned from scratch and LightGBM probes of the frozen MACE-MP-0 foundation model -- reach 63.3--74.6\% accuracy
+(65.9--71.7\% balanced; Supplementary Table~\ref{tabS:gnn}, Methods). The best, which appends the MACE-MP-0
+embedding to the screening features, gains 7 points of accuracy, but in agreement with Materials Project's own
+labels: on the experimentally labelled MAGNDATA subset every model lies between 49 and 56\% balanced accuracy,
+within the sensitivity of that small set. Retrained with
+the 26 DFT-validated candidates of this work held out, the models call 7--13 of the 21 that DFT overturns
+non-ferromagnetic, 1.5--2.8 times their rate on Materials Project ferromagnets. The screening below uses the
+LightGBM classifier throughout.
 
 The database is then filtered for candidates plausibly compatible with a DMI (Fig.~\ref{fig:screening}a): a
 net magnetic moment (FM or FiM), a noncentrosymmetric space group (DMI is symmetry-forbidden under an
@@ -485,6 +493,33 @@ baseline entirely. The classifier is retrained on all labeled data and deployed 
 record lacking a ground-truth label, including all 19{,}116 JARVIS records, none of which carry a populated
 ordering field.
 
+\subsection*{Graph neural network classifiers}
+
+Two graph-based models were trained on the train/test split of the LightGBM classifier and scored, together with
+it, on the 7{,}161 of its 7{,}193 test records whose structure is fully ordered (the other 32 are partially
+occupied MAGNDATA structures). Each crystal is a periodic graph whose nodes are atoms and whose edges join every
+atom to its 12 nearest neighbours within 8~\AA, built from species, positions and lattice only; no magnetic
+moment enters, since the MAGNDATA labels are derived from the moments. The first is a crystal graph
+convolutional neural network (CGCNN)~\cite{xie2018} trained from scratch in PyTorch Geometric~\cite{fey2019}: a
+learned 64-dimensional element embedding projected to 128 channels, four gated graph convolutions with batch
+normalization and residual updates, bond lengths expanded in 40 Gaussians over 0--8~\AA, mean pooling over atoms
+and a two-layer head. It is trained with class-weighted cross-entropy and AdamW (learning rate $10^{-3}$, weight
+decay $10^{-4}$, cosine schedule) for 120 epochs in batches of 128, keeping the epoch of best balanced accuracy on
+a stratified 10\% validation fraction of the training set, with three seeds on one 24~GB GPU. The second probes a
+pretrained foundation potential: the invariant per-atom descriptors of both interaction layers of the frozen
+MACE-MP-0 \texttt{medium} model~\cite{batatia2023} (128 channels, \texttt{max\_L}$=1$, $r_\mathrm{max}=6.0$~\AA;
+distinct from the fine-tuned \texttt{small} model used for relaxations below) are pooled over atoms by mean and
+standard deviation into a 512-dimensional vector, which LightGBM, with the settings of the screening classifier,
+classifies alone and concatenated with the screening features. MACE-MP-0 is trained on energies, forces and
+stresses only, so the embedding carries no ordering label, but it is not independent of Materials Project: its
+MPtrj training set holds relaxation trajectories of the same structures, computed in their stored magnetic
+orderings. Accuracy on the Materials Project rows measures agreement with Materials Project's label, which is
+the label this work finds biased towards FM; the MAGNDATA rows (311 AFM, 39 FiM, 19 FM in the test set) are the
+only experimental ground truth, and their balanced accuracy shifts by up to 4 points when the training set changes by
+only the 26 candidates and by 6 points between CGCNN seeds, as much as it differs between models. For an external test against DFT, every model was
+retrained with the 26 DFT-validated candidates removed from training, and its predictions for them compared with
+the DFT verdicts; with 21 overturned and 3 confirmed candidates these are reported as counts.
+
 \subsection*{Screening funnel and shortlist}
 
 The noncentrosymmetric filter was verified computationally against all 230 space groups, recovering the
@@ -505,7 +540,7 @@ from the AFLUX endpoint) and re-relaxed with a MACE foundation-model potential~\
 fine-tuned on the harmonized dataset via multihead training (a replay head sampling 20{,}000 configurations
 from the original pretraining distribution to avoid catastrophic forgetting), as an independent consistency
 check against each source's own DFT relaxation. The base model is MACE-MP-0 \texttt{small}
-(\texttt{num\_channels}$=128$, \texttt{max\_L}$=1$, two interaction layers, $r_\mathrm{max}=5.0$~\AA); the
+(\texttt{num\_channels}$=128$, \texttt{max\_L}$=0$, two interaction layers, $r_\mathrm{max}=6.0$~\AA); the
 relaxations use the Stage-2 stochastic-weight-averaging checkpoint of the fine-tune with its default head, and are static
 FIRE~\cite{bitzek2006} optimizations in ASE~\cite{larsen2017}. Other universal potentials trained on Materials
 Project data, such as M3GNet~\cite{chen2022} and CHGNet~\cite{deng2023}, would serve the same purpose. All 298
@@ -716,7 +751,7 @@ the normalized net magnetization $|m|=|\sum_i\hat{s}_i|/N$ is averaged over the 
 over three independent thermostat seeds per temperature. The Langevin damping is $\alpha=1$: the equilibrium
 $|m|(T)$ does not depend on $\alpha$, but the thermalization time of the softest magnons of the finite cell
 scales as $1/\alpha$ (see Spin-model validation checks). The independent Metropolis Monte Carlo
-(\path{src/spin_dynamics/mc_check_mp754090.py}) runs 2000 equilibration and 2000 measurement sweeps per
+runs 2000 equilibration and 2000 measurement sweeps per
 temperature on the same 2048-spin lattice.
 
 For mp-1079285 the same machinery carries a three-shell model,
@@ -736,14 +771,13 @@ evaluations of the $1\times2\times1$, $1\times4\times1$ ($++--$), $2a$ and $2c$ 
 energy differences -- the two chain cells exactly, the $2a$ and $2c$ cells to $0.5$\%, which is the residual
 of fitting one $J_\perp$ to two inequivalent shells. The production cell is an $8\times8\times8$ replication
 of the $1\times4\times1$ unit (2048 spins), started from FM along $b$, with the same Langevin protocol at
-fourteen temperatures from 5 to 300~K (\path{src/spin_dynamics/build_mp1079285_model.py},
-\path{outputs/mp1079285_spin_model.json}). The same-cell parametrization was swept at 10, 100, 125, 150
+fourteen temperatures from 5 to 300~K. The same-cell parametrization was swept at 10, 100, 125, 150
 and 200~K with three seeds each.
 
 \subsection*{Finite-size scaling}
 
 Sweeps were repeated at $N=256$, 864, 2048 and 4000 spins with the box aspect ratio held fixed, so that every
-size sees the same neighbour shells (\path{src/spin_dynamics/run_fss.sh}), as 40~ps Langevin runs
+size sees the same neighbour shells, as 40~ps Langevin runs
 ($\alpha=1$) with the moments pooled over the last 20~ps of four thermostat seeds; for mp-1079285 the
 135--150~K window, where the crossings lie, was run with 10--14 seeds per point, six of them 80~ps. Error bars
 on $U_4$ are a drop-one-seed jackknife. $U_4$ of a three-component order parameter tends to $2/3$ in the
@@ -754,7 +788,7 @@ noisy regime the difference between two sizes can change sign on scales far belo
 quoted crossings are therefore the lowest-temperature sign changes that persist: the difference is required
 to stay positive at a majority of the higher temperatures measured, which discards both the sub-noise flips
 inside the ordered plateau, where every $U_4$ has converged on $2/3$, and isolated single-point reversals above
-$T_c$ (\path{src/spin_dynamics/analyze_fss.py}); one such non-persistent sign change was discarded for
+$T_c$; one such non-persistent sign change was discarded for
 mp-1079285, whose 155 and 160~K points retain only four seeds each and scatter back above $4/9$. $T_c$ and its
 uncertainty are the mean and standard deviation of the three pairwise crossings of consecutive sizes. The
 longer runs at 135--150~K cut the $U_4$ error where the crossings lie ($\pm0.048\rightarrow\pm0.014$ for
@@ -779,15 +813,14 @@ means that differ by up to $0.049$.
 
 \section*{Data availability}
 
-The per-candidate verdict tables (\path{outputs/dft_verdicts.csv}, \path{outputs/dft_tight_validation.csv}),
-the spin-model parameter files and the reduced magnetization and finite-size-scaling sweeps behind every
-figure (\path{outputs/*_mvt*.csv}, \path{outputs/*_fss.csv}) are available at
+The per-candidate DFT verdict tables, the spin-model parameter files and the reduced magnetization and
+finite-size-scaling sweeps behind every figure are available at
 \url{https://github.com/akhtar07/magnetic-materials-dmi-screening} and are provided as Source Data with this
 paper. The harmonized database is rebuilt from the seven public sources by the code below.
 
 \section*{Code availability}
 
-The database harmonization, classifier, screening, VASP-input generation, spin-model, spin-dynamics,
+The database harmonization, classifier (LightGBM and graph-neural-network), screening, VASP-input generation, spin-model, spin-dynamics,
 finite-size-scaling and figure scripts are available at
 \url{https://github.com/akhtar07/magnetic-materials-dmi-screening}.
 
@@ -911,12 +944,18 @@ three-dimensional classical Heisenberg models: A high-resolution Monte Carlo stu
 
 \bibitem{kabiraj2020} A. Kabiraj, M. Kumar, and S. Mahapatra, High-throughput discovery of high Curie point two-dimensional ferromagnetic materials, npj Comput. Mater. \textbf{6}, 35 (2020).
 
-\bibitem{batatia2022} I. Batatia, D. P. Kov\'acs, G. N. C. Simm, C. Ortner, and G. Cs\'anyi, MACE: Higher
-order equivariant message passing neural networks for fast and accurate force fields, Adv. Neural Inf.
-Process. Syst. \textbf{35} (2022).
+\bibitem{xie2018} T. Xie and J. C. Grossman, Crystal graph convolutional neural networks for an accurate and
+interpretable prediction of material properties, Phys. Rev. Lett. \textbf{120}, 145301 (2018).
+
+\bibitem{fey2019} M. Fey and J. E. Lenssen, Fast graph representation learning with PyTorch Geometric,
+arXiv:1903.02428 (2019).
 
 \bibitem{batatia2023} I. Batatia, P. Benner, Y. Chiang, \emph{et al.}, A foundation model for atomistic
 materials chemistry, arXiv:2401.00096 (2023).
+
+\bibitem{batatia2022} I. Batatia, D. P. Kov\'acs, G. N. C. Simm, C. Ortner, and G. Cs\'anyi, MACE: Higher
+order equivariant message passing neural networks for fast and accurate force fields, Adv. Neural Inf.
+Process. Syst. \textbf{35} (2022).
 
 \bibitem{bitzek2006} E. Bitzek, P. Koskinen, F. G\"ahler, M. Moseler, and P. Gumbsch, Structural Relaxation Made Simple, Phys. Rev. Lett. \textbf{97}, 170201 (2006).
 
@@ -1049,7 +1088,7 @@ error. Finally, at the conventional damping $\alpha=0.05$ neither 4~ps nor 20~ps
 temperatures nearest the transition (at 100~K the seed-averaged $|m|$ was still falling across the averaged
 half of both: from $0.49$ in its first $0.5$~ps to $0.38$ in its last for the 4~ps run, and from $0.15$ in its
 first 2~ps window to $0.07$ in its last for the 20~ps run); those runs are kept
-(\path{src/spin_dynamics/logs_v3_4ps}, \texttt{logs\_v3\_a005\_20ps}) and approach the reported values
+in the repository and approach the reported values
 from above.
 
 
@@ -1074,6 +1113,33 @@ distance first (671) and by hull distance; the 524 records from sources without 
 dotted line. Black circles, the 26 DFT candidates, which span ranks 1--663.}
 \label{figS:hullrank}
 \end{figure}
+
+\begin{table}[h]
+\centering
+\caption{\textbf{Ordering classifiers compared on one split.} All models trained on the same records (28{,}769; the 28{,}673 with an
+ordered structure for the graph-based models, of which CGCNN holds out 10\% for validation) and scored on the 7{,}161 test records with an ordered structure (\%). CGCNN, mean $\pm$ s.d.\ over three seeds; the LightGBM models are deterministic. MAGN.\ bal., balanced accuracy on the 369 experimentally labelled
+test records (311 AFM, 39 FiM, 19 FM); this column varies by up to 4 points with the training set and does not
+rank the models. MP FM$\to$non-FM, fraction of Materials Project FM test records predicted AFM or FiM by the
+held-out model, the base rate for the next column. The last two columns (Overt., Conf.) are from retraining with the 26 DFT candidates held out: how
+many of the 21 overturned candidates are predicted AFM or FiM, and how many of the 3 confirmed ferromagnets are
+predicted FM (CGCNN, range over seeds). The screening used LightGBM v2 (on all 7{,}193 test records 67.4\% and
+68.0\%).}
+\label{tabS:gnn}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccccccc}
+\toprule
+ & & Bal. & \multicolumn{4}{c}{Recall} & MAGN. & MP FM & Overt. & Conf. \\
+Model & Acc. & acc. & AFM & FM & FiM & NM & bal. & $\to$non-FM & non-FM & FM \\
+\midrule
+LightGBM v2 (screening) & 67.4 & 68.0 & 70.9 & 68.4 & 56.9 & 75.7 & 56.0 & 23.2 & 10/21 & 2/3 \\
+LightGBM, MACE emb. & 69.6 & 68.3 & 56.5 & 71.4 & 63.9 & 81.5 & 53.3 & 22.0 & 13/21 & 2/3 \\
+LightGBM, v2 + MACE & 74.6 & 71.7 & 65.9 & 78.4 & 63.0 & 79.5 & 55.1 & 15.8 & 7/21 & 2/3 \\
+CGCNN & $63.3\pm3.2$ & $65.9\pm1.0$ & $63.6\pm6.3$ & $62.0\pm6.6$ & $58.0\pm2.3$ & $79.9\pm4.5$ & $49.1\pm6.4$ & $32.7\pm6.7$ & 10--13/21 & 0--1/3 \\
+\bottomrule
+\end{tabular}}
+\end{table}
 
 \begin{table}[h]
 \centering
