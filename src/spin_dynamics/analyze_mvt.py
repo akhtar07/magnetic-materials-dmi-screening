@@ -8,9 +8,9 @@ from the FM ground state). Error bar = std over seeds (3 seeds -> indicative onl
 
 Usage:
     python analyze_mvt.py [--logs logs_v2] [--out ../../outputs/mp754090_mvt_v2.csv]
-                          [--fig ../../paper/figures/fig_mp754090_mvt.pdf]
+                          [--fig ../../outputs/mp754090_mvt_diagnostic.pdf]
     python analyze_mvt.py --tag mp1079285 --nspins 2048 --logs logs_mp1079285 \
-                          --out ../../outputs/mp1079285_mvt.csv --fig ../../paper/figures/fig_mp1079285_mvt.pdf \
+                          --out ../../outputs/mp1079285_mvt.csv --fig ../../outputs/mp1079285_mvt_diagnostic.pdf \
                           --title "mp-1079285 Tb$_6$FeBi$_2$: ..."
 --tag selects the log-file prefix (log.<tag>_T<T>_s<seed>.lammps); --nspins must equal the number of
 spins in the replicated cell (the thermo E_mag column is a total, converted here to meV/site).
@@ -54,7 +54,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--logs", default=str(HERE / "logs_v2"))
     ap.add_argument("--out", default=str(HERE.parents[1] / "outputs" / "mp754090_mvt_v2.csv"))
-    ap.add_argument("--fig", default=str(HERE.parents[1] / "paper" / "figures" / "fig_mp754090_mvt.pdf"))
+    ap.add_argument("--fig", default=str(HERE.parents[1] / "outputs" / "mp754090_mvt_diagnostic.pdf"))
     ap.add_argument("--tag", default="mp754090", help="log-file prefix: log.<tag>_T<T>_s<seed>.lammps")
     ap.add_argument("--nspins", type=int, default=N_SPINS_DEFAULT, help="spins in the replicated cell")
     ap.add_argument("--title", default="mp-754090 Li$_4$Fe$_2$TeWO$_{12}$: 12-neighbour $J$ = 2.78 meV")

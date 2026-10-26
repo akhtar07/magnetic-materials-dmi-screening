@@ -84,7 +84,8 @@ the DFT validation and spin-dynamics stages respectively and are not distributed
   candidate is already overturned by 3_afm) and the mp-850225 c-stacked pair (`afm_cstack/fm_in_cstack`,
   staged by `src/dft/stage_mp850225_cstack.py` to separate the in-plane and out-of-plane exchange, dE = 12 J_2;
   `not run`). Per-candidate verdicts: `outputs/dft_verdicts.csv` (tight pairs:
-  `outputs/dft_tight_validation.csv`); figures regenerate from `src/figures/make_paper_figures.py`.
+  `outputs/dft_tight_validation.csv`); figures regenerate from `src/figures/` (`make_paper_figures.py`: Figs 1, 2 and Supplementary Figs 1, 2;
+  `make_exchange_figure.py`: Fig. 3; `make_spin_figure.py`: Fig. 4; shared style in `nature_style.py`).
 - The DMI constant for mp-754090 resolves one projection of a 3-component vector (space group
   \(P1\), no symmetry to fix a preferred canting plane); a full characterization would probe
   additional planes.
@@ -109,7 +110,7 @@ the DFT validation and spin-dynamics stages respectively and are not distributed
   four sizes) — the classical-fcc value, 22% below mean field (which therefore overestimates it by 28%). The in-plane,
   inter-layer and same-sublattice bonds cannot be separated by one pair and share the single J; the Fe
   moment is treated as a classical unit vector. mp-1079285 (three-shell model, J_b = 14.61, J_2b = 3.31,
-  J_perp = 2.80 meV, |D| = 0.098 meV calibrated to the spiral pairs; `outputs/mp1079285_mvt.csv`)
+  J_perp = 2.79 meV, |D| = 0.098 meV calibrated to the spiral pairs; `outputs/mp1079285_mvt.csv`)
   orders between 125 and 150 K in the 2048-spin cell; the same FSS analysis
   (`outputs/mp1079285_fss.csv`, 80 ps and 10-14 seeds per point at 135-150 K) gives crossings at
   140.9/141.4/135.6 K, T_c = 139.3 ± 2.6 K = 0.68 T_c^MF (T_c^MF = 203 K). The crossings are not

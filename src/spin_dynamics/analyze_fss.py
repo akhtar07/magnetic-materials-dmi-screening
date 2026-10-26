@@ -27,7 +27,7 @@ Also written: chi = N (<m^2> - <|m|>^2) / (k_B T) in mu^2/meV, whose peak positi
 Usage:
     python analyze_fss.py --tag mp754090   [--logs logs_fss_mp754090]
                           [--out ../../outputs/mp754090_fss.csv]
-                          [--fig ../../paper/figures/fig_mp754090_fss.pdf]
+                          [--fig ../../outputs/mp754090_fss_diagnostic.pdf]
     python analyze_fss.py --tag mp1079285
 """
 import argparse
@@ -117,7 +117,7 @@ def main():
     args = ap.parse_args()
     logs = Path(args.logs or HERE / f"logs_fss_{args.tag}")
     out = Path(args.out or HERE.parents[1] / "outputs" / f"{args.tag}_fss.csv")
-    fig_path = Path(args.fig or HERE.parents[1] / "paper" / "figures" / f"fig_{args.tag}_fss.pdf")
+    fig_path = Path(args.fig or HERE.parents[1] / "outputs" / f"{args.tag}_fss_diagnostic.pdf")
     title = args.title or TITLES.get(args.tag, args.tag)
 
     per_point = moments(args.tag, logs)
