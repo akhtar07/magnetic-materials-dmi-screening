@@ -110,9 +110,11 @@ magnetic-ordering classifier, use them to filter for DMI-compatible candidates, 
 collinear energy-mapping protocol MP itself prescribes~\cite{horton2019} on 26 of the resulting shortlisted
 candidates. The result is a direct, per-compound DFT verdict rather than a statistical classifier
 disagreement, obtained specifically in the population most consequential for DMI-material discovery. We
-then carry one confirmed-FM candidate, Li$_4$Fe$_2$TeWO$_{12}$ (mp-754090), through a full pipeline: DFT
-extraction of both the isotropic exchange constant $J$ and the DMI constant $D$, and finite-temperature
-atomistic spin dynamics driven by those DFT-derived constants with no fitting or rescaling.
+then carry two confirmed-FM candidates, Li$_4$Fe$_2$TeWO$_{12}$ (mp-754090) and Tb$_6$FeBi$_2$
+(mp-1079285), through a full pipeline: DFT extraction of the isotropic exchange constants and of the DMI,
+and finite-temperature atomistic spin dynamics driven by those DFT-derived constants with no fitting or
+rescaling, with the ordering temperature of each model fixed by finite-size scaling. For the third
+confirmed-FM candidate, FeP$_6$(WO$_8$)$_3$ (mp-850225), we resolve its two exchange shells.
 
 \section{Methods}
 
@@ -188,6 +190,7 @@ source flag.}
 \end{figure*}
 
 \subsection{DMI-compatibility screening funnel}
+\label{sec:funnel}
 
 The full 64{,}635-record database, with ordering back-filled by the deployment classifier where no
 ground-truth label exists, is filtered for candidates plausibly compatible with a DMI: a net magnetic
@@ -513,7 +516,8 @@ configuration (margins 0.19--24.68~\meVat), 3 are confirmed as the true FM groun
 below the next-lowest configuration), and 2 (CaLaTaFeO$_6$ with AFM 0.10~\meVat\ below FM and
 Ba$_4$Ta$_{10}$FeO$_{30}$ at 0.00~\meVat, both from tight pairs) sit within 0.10~\meVat\ -- twice the
 per-atom electronic-convergence tolerance ($\mathrm{EDIFF}=5\times10^{-5}$~eV/atom) of the loose protocol
--- and are read as degenerate rather than as confirming either ordering (Fig.~\ref{fig:margins}). No
+-- and are read as degenerate rather than as confirming either ordering (Fig.~\ref{fig:margins},
+Table~\ref{tab:summary}). No
 candidate remains unresolved: the one configuration never completed (the re-diagnosed $1\times1\times2$
 stacking of mp-682554, whose production run was dropped when the farm was stopped on 21 September to
 release the nodes) belongs to a candidate that another audited AFM cell already places 0.31~\meVat\
@@ -585,8 +589,8 @@ and any experimental follow-up should start from the two ICSD-backed entries (Fi
 \includegraphics[width=\columnwidth]{figures/fig_dft_provenance.pdf}
 \caption{DFT margin (lowest audited non-FM configuration minus FM, symmetric-log axis; negative means
 MP's FM label is overturned) against MP's own hull distance for the 26 candidates. Colour gives
-the verdict of Fig.~\ref{fig:margins}; the gray band is the $\pm0.10$~\meVat\ degeneracy window. Only one
-completed candidate (FeBi(SeO$_3$)$_3$, star) is an experimentally reported ICSD compound; every confirmed-FM
+the verdict of Fig.~\ref{fig:margins}; the gray band is the $\pm0.10$~\meVat\ degeneracy window. Only two
+candidates (FeBi(SeO$_3$)$_3$ and Tb$_6$FeBi$_2$ (mp-22972), stars) are experimentally reported ICSD compounds, both overturned; every confirmed-FM
 entry is a hypothetical structure, and the margin shows no trend with hull distance.}
 \label{fig:provenance}
 \end{figure}
@@ -872,7 +876,7 @@ criterion rather than a prior.
 
 \subsection{Practical implication for DMI-candidate screening}
 
-The screening funnel used to generate this shortlist (Sec.~II.C) excludes AFM-labeled candidates from
+The screening funnel used to generate this shortlist (Sec.~\ref{sec:funnel}) excludes AFM-labeled candidates from
 consideration entirely, on the reasoning that a net moment is required for the texture-hosting mechanisms
 this project targets. If 21 of 26 top-ranked, MP-labeled-FM candidates from that funnel are, in fact, AFM or ferrimagnetic,
 a nontrivial fraction of the true magnetic-material landscape relevant to this search is being filtered out
@@ -952,17 +956,23 @@ ferrimagnetic), 3 confirmed, and 2 degenerate within 0.10~\meVat. This DFT-level
 directly consequential population, the large-scale statistical finding of systematic ferromagnetic bias in
 MP recently reported from ML classifiers trained on experimentally solved magnetic
 structures~\cite{fahmy2026}. For one confirmed candidate, mp-754090, we additionally demonstrate a complete
-DFT-to-dynamics pipeline: exchange and DMI constants extracted from first principles, with no fitting, drive
-a finite-temperature spin-dynamics simulation whose Binder-cumulant crossing over four system sizes
+DFT-to-dynamics pipeline: the exchange constant extracted from first principles, with no fitting, drives
+a finite-temperature spin-dynamics simulation (the DFT-resolved DMI projection, $D/J\approx3.5\%$, is
+bounded by a control sweep rather than carried in the model) whose Binder-cumulant crossing over four system sizes
 places the transition at $101\pm1$~K, matching the classical-Heisenberg estimate for the same exchange
 constant and an independent Monte Carlo calculation; for a second confirmed candidate, mp-1079285, a
 three-shell model with a symmetry-resolved, DFT-calibrated chain DMI orders at $139\pm3$~K. Both results argue for treating high-throughput
 database ordering labels as a screening prior rather than ground truth, particularly within the structural
 families that downstream physical mechanisms (here, DMI) specifically select for.
 
+\section*{Data availability}
+
+The harmonized database schema, the classifier and screening code, the scripts that generate every VASP input
+from its Materials Project structure, the per-candidate verdict tables (\texttt{outputs/dft\_verdicts.csv}, \texttt{outputs/dft\_tight\_validation.csv}), and the
+spin-model, spin-dynamics and finite-size-scaling scripts are available at
+\url{https://github.com/akhtar07/magnetic-materials-dmi-screening}.
+
 \begin{acknowledgments}
-The author thanks their advisor for guidance connecting this project's DFT validation results to
-independent recent ML-based evidence of the same database bias.
 This research used computational resources at PARAM Rudra 20~PF HPC System provided by the Centre for
 Development of Advanced Computing (C-DAC) under the National Supercomputing Mission (NSM), India's flagship
 initiative jointly steered by the Ministry of Electronics and Information Technology (MeitY) and the
