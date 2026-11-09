@@ -87,11 +87,6 @@ def panel_chains(ax, p):
     for x0 in xs[:-2:2]:
         ax.add_patch(FancyArrowPatch((x0, 0), (x0 + 2 * rb, 0), connectionstyle="arc3,rad=0.45",
                                      arrowstyle="-", color=C_2B, lw=1.0, zorder=1))
-    # chain-bond DMI: D is perpendicular to b (the Pm mirror is normal to b); drawn at one bond midpoint
-    xm, ym = 0.5 * (xs[2] + xs[3]), rows[1]
-    ax.annotate("", (xm, ym + 2.4), (xm, ym), arrowprops=dict(arrowstyle="-|>", lw=0.8, color=ns.INK,
-                                                             mutation_scale=6, shrinkA=0, shrinkB=0))
-    ax.text(xm + 0.35, ym + 1.9, "$\\mathbf{D}\\perp b$", fontsize=6.5, va="center")
     ax.annotate("", (xs[-1] + 1.8, -2.2), (xs[0] - 0.3, -2.2),
                 arrowprops=dict(arrowstyle="-|>", lw=0.6, color=ns.INK2, mutation_scale=6))
     ax.text(xs[-1] + 2.0, -2.2, "$b$", va="center", fontsize=6.5, color=ns.INK2)
@@ -108,12 +103,13 @@ def panel_chains(ax, p):
 
 def panel_hierarchy(ax, m754, p, psc):
     rows = [("$J$", m754["J_eV"], None, C_SHORT, "Li$_4$Fe$_2$TeWO$_{12}$"),
-            ("$D_y$", m754["D_y_eV"], None, ns.INK, "Li$_4$Fe$_2$TeWO$_{12}$"),
+            ("$|\\bar{\\mathbf{D}}|$", m754["D_bar_norm_eV"], m754["D_y_eV"], ns.INK, "Li$_4$Fe$_2$TeWO$_{12}$"),
             ("$J_b$", p["J_b_eV"], psc["J_b_eV"], C_SHORT, "Tb$_6$FeBi$_2$"),
             ("$J_{2b}$", p["J_2b_eV"], psc["J_2b_eV"], C_2B, "Tb$_6$FeBi$_2$"),
-            ("$J_\\perp$", p["J_inter_eV"], None, C_LONG, "Tb$_6$FeBi$_2$"),
-            ("$|\\mathbf{D}|$", p["D_eV"], None, ns.INK, "Tb$_6$FeBi$_2$")]
-    y = np.array([5.6, 4.6, 2.8, 1.8, 0.8, -0.2])
+            ("$J_\\perp$", p["J_inter_eV"], None, C_LONG, "Tb$_6$FeBi$_2$")]
+    # the Tb6FeBi2 chain-bond D vanishes in P-62m (chain on the 3-fold axis, bond midpoint on the sigma_h mirror);
+    # the 0.098 meV fitted on the loose-relaxed geometry came from a 0.03 A Pm residual and is not plotted
+    y = np.array([5.6, 4.6, 2.8, 1.8, 0.8])
     for yi, (lab, val, alt, col, _) in zip(y, rows):
         ax.hlines(yi, 0.03, val * 1e3, color="#d3d1c7", lw=0.6, zorder=1)
         ax.scatter(val * 1e3, yi, s=22, color=col, edgecolor="white", linewidth=0.4, zorder=3)
@@ -123,8 +119,9 @@ def panel_hierarchy(ax, m754, p, psc):
         ax.text(max(val, alt or 0) * 1e3 * 1.3, yi, lab, va="center", fontsize=6, color=ns.INK2)
         if alt is not None:
             ax.scatter(alt * 1e3, yi, s=22, facecolor="none", edgecolor=col, linewidth=0.7, zorder=2)
-    ax.set_yticks(y)
-    ax.set_yticklabels([r[0] for r in rows])
+    ax.text(0.06, -0.2, "$\\mathbf{D}=0$ by symmetry ($P\\bar{6}2m$)", va="center", fontsize=6, color=ns.INK2)
+    ax.set_yticks(list(y) + [-0.2])
+    ax.set_yticklabels([r[0] for r in rows] + ["$|\\mathbf{D}|$"])
     ax.tick_params(axis="y", length=0)
     ax.spines["left"].set_visible(False)
     ax.set_xscale("log")
@@ -143,6 +140,7 @@ def panel_hierarchy(ax, m754, p, psc):
 
 def main():
     m754 = json.load(open(OUT / "mp754090_spin_model_v4.json"))
+    m754["D_bar_norm_eV"] = json.load(open(OUT / "mp754090_dmi_vector.json"))["D_bar_norm_eV"]
     p = json.load(open(OUT / "mp1079285_spin_model.json"))["parameters"]
     psc = json.load(open(OUT / "mp1079285_samecell_spin_model.json"))["parameters"]
     fig, axes = plt.subplots(1, 3, figsize=(ns.DOUBLE, 0.36 * ns.DOUBLE),

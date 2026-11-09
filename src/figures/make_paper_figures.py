@@ -45,6 +45,34 @@ SOURCES = ["MaterialsProject", "JARVIS", "AFLOW", "other"]
 SRC_LABEL = {"MaterialsProject": "Materials Project", "JARVIS": "JARVIS-DFT", "AFLOW": "AFLOW",
              "other": "Other (2DMatPedia, NOMAD, OQMD, MAGNDATA)"}
 VERDICT_COLOR = {"overturned": ns.OVERTURNED, "fm_confirmed": ns.CONFIRMED, "degenerate": ns.DEGENERATE}
+# Outcome classes by the fate of the net moment the screening selects for (paper Table 1). The DFT ground
+# state of these candidates keeps a net moment although a non-FM configuration wins: an uncompensated
+# ferrimagnet (mp-775194 8_fim, 8 muB; mp-769471 3_afm, Fe-AFM but 4.0 muB net with Co), or a FiM ground
+# state of a candidate MP itself labels FiM (mp-551086 5_fim).
+NET_KEPT_FIM = {"mp-775194", "mp-769471", "mp-850225"}  # mp-850225: Fe FM, W5+ antiparallel (U_W=0)
+FIM_LABEL_CONSISTENT = {"mp-551086"}
+# Tb6FeBi2 statics at a uniform ~60 A k-length (15x8x5 and 4x15x8) on the tight-pair CONTCARs, revision 2026-11
+# (data/dft_staging_revision/tb_k3*): E_AFM - E_FM per atom. The tight pair of mp-22972 3_afm used 6x2x1 (one
+# k-point along 14.5 A) and gave -0.46; at k3 both Tb6FeBi2 entries are FM.
+K_CONVERGED = {
+    ("mp-22972", "3_afm"): (-94.427430 + 94.448272) / 18 * 1e3,  # +1.158
+    ("mp-1079285", "2a"): (-94.432671 + 94.456329) / 18 * 1e3,  # +1.314
+}
+OUTCOMES = {  # key: (label, colour)
+    "lost": ("Net moment lost (AFM)", ns.OVERTURNED),
+    "kept_fim": ("Net moment kept (FiM)", ns.FIM_KEPT),
+    "consistent": ("Consistent with label", ns.CONFIRMED),
+    "degenerate": ("Degenerate", ns.DEGENERATE),
+}
+
+
+def outcome(cid: str, verdict: str) -> str:
+    if cid in NET_KEPT_FIM and verdict in ("overturned", "fm_confirmed"):
+        return "kept_fim"
+    if verdict == "overturned":
+        return ("kept_fim" if cid in NET_KEPT_FIM else
+                "consistent" if cid in FIM_LABEL_CONSISTENT else "lost")
+    return {"fm_confirmed": "consistent"}.get(verdict, verdict)
 
 
 def fold(counts: dict) -> dict:
@@ -97,6 +125,10 @@ def dft_verdicts() -> pd.DataFrame:
         for _, r in tt[~tt.pair.isin(non.calc)].iterrows():
             margins[r.pair] = -float(r.gap_fm_minus_afm_meV_per_atom)
             protocols[r.pair] = "tight" if r.status == "ok" else "tight (provisional)"
+        # k-converged statics on the tight CONTCARs replace the tight-pair number (Tb6FeBi2 only)
+        for (c0, pair), m in K_CONVERGED.items():
+            if c0 == cid:
+                margins[pair], protocols[pair] = m, "tight"
         n_missing = int(t.n_staged.iloc[0]) - len(t)  # staged but not run (no OUTCAR yet)
         complete = not unresolved and n_missing == 0 and (len(fm) > 0 or any(p.startswith("tight") for p in protocols.values()))
         if margins:
@@ -119,6 +151,7 @@ def dft_verdicts() -> pd.DataFrame:
                          verdict=verdict))
     v = pd.DataFrame(rows)
     v["resolved"] = v.verdict != "incomplete"
+    v["outcome"] = [outcome(c, x) for c, x in zip(v.candidate_id, v.verdict)]
     # disambiguate duplicate formulas in labels
     dup = v.formula.duplicated(keep=False)
     v["label"] = np.where(dup, v.formula + " (" + v.candidate_id.str.replace("mp-", "") + ")", v.formula)
@@ -176,10 +209,9 @@ def fig_screening(v: pd.DataFrame):
                                                                      shrinkA=0, shrinkB=0, mutation_scale=6))
     # verdict split of the DFT batch
     xe = x0 + len(boxes) * (w + gap) - gap
-    split = [(n_v.get("overturned", 0), "FM label overturned", ns.OVERTURNED),
-             (n_v.get("fm_confirmed", 0), "FM confirmed", ns.CONFIRMED),
-             (n_v.get("degenerate", 0), "Degenerate", ns.DEGENERATE)]
-    ys = [0.78, 0.5, 0.22]
+    n_o = v.outcome.value_counts()
+    split = [(n_o.get(k, 0), lab, col) for k, (lab, col) in OUTCOMES.items()]
+    ys = [0.86, 0.62, 0.38, 0.14]
     for (n, lab, col), y in zip(split, ys):
         a.annotate("", (xe + 0.05, y), (xe, 0.5), arrowprops=dict(arrowstyle="-|>", lw=0.6, color=ns.INK2,
                                                                   shrinkA=0, shrinkB=2, mutation_scale=6))
@@ -241,9 +273,9 @@ def fig_dft_verdicts(v: pd.DataFrame):
     p = pd.read_csv(OUT / "candidate_provenance.csv").set_index("candidate_id")
     c = c.join(p[["theoretical", "mp_energy_above_hull"]], on="candidate_id")
     c["experimental"] = ~c.theoretical.astype(bool)
-    col = c.verdict.map(VERDICT_COLOR)
+    col = c.outcome.map({k: v[1] for k, v in OUTCOMES.items()})
 
-    fig, (a, b) = plt.subplots(1, 2, figsize=(ns.DOUBLE, 0.50 * ns.DOUBLE),
+    fig, (a, b) = plt.subplots(1, 2, figsize=(ns.DOUBLE, 0.60 * ns.DOUBLE),
                                gridspec_kw=dict(width_ratios=[1, 1.05], wspace=0.32))
     lin = DEGENERATE_MEV
     # a: signed margin per candidate
@@ -264,31 +296,31 @@ def fig_dft_verdicts(v: pd.DataFrame):
     a.tick_params(axis="y", length=0, pad=1)
     a.spines["left"].set_visible(False)
     a.set_ylim(-0.7, len(c) - 0.3)
-    a.set_xlabel("$E_{\\rm AFM}^{\\min}-E_{\\rm FM}$ (meV atom$^{-1}$)")
-    n = c.verdict.value_counts()
-    a.legend(handles=[Line2D([], [], color=ns.OVERTURNED, lw=1.6, label=f"Overturned ({n.get('overturned', 0)})"),
-                      Line2D([], [], color=ns.CONFIRMED, lw=1.6, label=f"FM confirmed ({n.get('fm_confirmed', 0)})"),
-                      Patch(color=ns.DEGENERATE, alpha=0.4, lw=0, label=f"Degenerate ({n.get('degenerate', 0)})"),
+    a.set_xlabel("Lowest non-FM $-$ FM energy (meV atom$^{-1}$)")
+    n = c.outcome.value_counts()
+    a.legend(handles=[Line2D([], [], color=OUTCOMES[k][1], lw=1.6, label=f"{OUTCOMES[k][0]} ({n.get(k, 0)})")
+                      for k in ("lost", "kept_fim", "consistent")] +
+                     [Patch(color=ns.DEGENERATE, alpha=0.4, lw=0, label=f"Degenerate ({n.get('degenerate', 0)})"),
                       Line2D([], [], marker="o", ls="", color=ns.INK2, mec="white", ms=3.5,
                              label=f"Same-cell pair ({int(tight.sum())})"),
                       Line2D([], [], marker="o", ls="", mfc="white", mec=ns.INK2, ms=3.5,
                              label=f"MP recipe only ({int((~tight).sum())})")],
-             loc="lower left", bbox_to_anchor=(0.0, 0.0))
+             loc="upper center", bbox_to_anchor=(0.42, -0.13), ncol=2, columnspacing=1.0, handlelength=1.6)
 
     # b: margin vs MP hull energy; ICSD (experimental) entries as stars
     b.axhspan(-lin, lin, color=ns.DEGENERATE, alpha=0.22, lw=0)
     b.axhline(0, color=ns.INK, lw=0.5)
-    for verdict, grp in c.groupby("verdict"):
+    for oc, grp in c.groupby("outcome"):
         th, ex = grp[~grp.experimental], grp[grp.experimental]
-        b.scatter(th.mp_energy_above_hull * 1e3, th.margin_meV, s=14, color=VERDICT_COLOR[verdict],
+        b.scatter(th.mp_energy_above_hull * 1e3, th.margin_meV, s=14, color=OUTCOMES[oc][1],
                   edgecolor="white", linewidth=0.4, zorder=3)
-        b.scatter(ex.mp_energy_above_hull * 1e3, ex.margin_meV, s=48, marker="*", color=VERDICT_COLOR[verdict],
+        b.scatter(ex.mp_energy_above_hull * 1e3, ex.margin_meV, s=48, marker="*", color=OUTCOMES[oc][1],
                   edgecolor=ns.INK, linewidth=0.4, zorder=4)
     for _, r in c[c.experimental].iterrows():
         # the Tb6FeBi2 label sits in the free band to the right, with a leader, clear of the neighbouring points
         far = r.candidate_id == "mp-22972"
         b.annotate(tex_formula(r.label), (r.mp_energy_above_hull * 1e3, r.margin_meV),
-                   xytext=(48, -0.62) if far else (5, -2), textcoords="data" if far else "offset points",
+                   xytext=(50, 0.4) if far else (5, -2), textcoords="data" if far else "offset points",
                    fontsize=6, va="center" if far else "top",
                    arrowprops=dict(arrowstyle="-", lw=0.4, color=ns.INK2, shrinkA=1, shrinkB=4) if far else None)
     b.set_yscale("symlog", linthresh=lin, linscale=0.6)
@@ -296,7 +328,7 @@ def fig_dft_verdicts(v: pd.DataFrame):
     b.set_yticks([-10, -1, -0.1, 0, 0.1, 1])
     b.set_yticklabels(["$-10$", "$-1$", "$-0.1$", "0", "0.1", "1"])
     b.set_xlabel("MP $E_{\\rm hull}$ (meV atom$^{-1}$)")
-    b.set_ylabel("$E_{\\rm AFM}^{\\min}-E_{\\rm FM}$ (meV atom$^{-1}$)")
+    b.set_ylabel("Lowest non-FM $-$ FM energy (meV atom$^{-1}$)")
     b.legend(handles=[Line2D([], [], marker="o", ls="", color=ns.INK2, ms=3.5, label="Theoretical (no ICSD entry)"),
                       Line2D([], [], marker="*", ls="", color=ns.INK2, mec=ns.INK, mew=0.4, ms=7,
                              label="Experimental (ICSD)")],
@@ -398,7 +430,7 @@ def main():
     ev, geom = fig_classifier()
     hl = fig_hull_rank(v)
     v.to_csv(OUT / "dft_verdicts.csv", index=False)
-    print("DFT verdicts:", v.verdict.value_counts().to_dict(), f"valid calcs {int(v.n_valid.sum())}/{int(v.n_calc.sum())}",
+    print("DFT outcomes:", v.outcome.value_counts().to_dict(), "verdicts:", v.verdict.value_counts().to_dict(), f"valid calcs {int(v.n_valid.sum())}/{int(v.n_calc.sum())}",
           "| provenance:", prov)
     print(v.sort_values("margin_meV").to_string(index=False))
     print("funnel:", f["funnel"], "| hull-hard:", fh["funnel"]["+ hull <= 0.1 where known (hard)"], "|", sc)

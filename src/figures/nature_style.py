@@ -20,6 +20,7 @@ DOUBLE = 180 * MM
 ONEHALF = 120 * MM
 
 OVERTURNED, CONFIRMED, DEGENERATE = "#e34948", "#2a78d6", "#8c8b85"
+FIM_KEPT = "#e8a33d"  # FM label -> ferrimagnetic ground state (net moment kept)
 INK, INK2 = "#1a1a1a", "#5f5e5a"
 SOURCE_COLOR = {"MaterialsProject": "#2a78d6", "JARVIS": "#eb6834", "AFLOW": "#1baf7a", "other": "#5f5e5a"}
 SIZE_RAMP = ["#86b6ef", "#3987e5", "#1c5cab", "#0d366b"]
