@@ -324,3 +324,6 @@ used).
 - J_perp at k3 would be ~2.94 meV (+5%, inside the 14% spread); spin model not rerun.
 - mp-682554 (metallic, -0.31, k-length 20-28 A) was NOT k-tested; stated in Methods.
 - Provenance subsection retitled; the ICSD-backed Tb6FeBi2 keeps its moment but is in -6m2 (no Lifshitz invariant).
+- 2026-11-11: intro now counts four FM-Fe-sublattice candidates (three compounds; the two Tb6FeBi2 entries are one).
+  Classifier hold-out table recounted against the current verdicts (predictions unchanged; compare_models.py now reads
+  outputs/dft_verdicts.csv): 9/20, 12/20, 6/20, CGCNN 9-12/20 non-FM; 2/4, 2/4, 2/4, 0-1/4 FM; base-rate ratio 1.5-2.7.

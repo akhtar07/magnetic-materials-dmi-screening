@@ -2,8 +2,8 @@
 
 Every model is scored on the 7,161 shared test ids that carry a crystal graph. CGCNN rows are the mean and
 standard deviation over three seeds; the LightGBM heads are deterministic. The DFT columns come from the runs
-with the 26 DFT-validated candidates held out of training: how many of the 21 overturned candidates each model
-calls non-FM (AFM or FiM), and how many of the 3 confirmed ferromagnets it calls FM.
+with the 26 DFT-validated candidates held out of training: how many of the 20 overturned candidates each model
+calls non-FM (AFM or FiM), and how many of the 4 candidates with a confirmed FM Fe sublattice it calls FM.
 
     python src/gnn/compare_models.py      # env: magnetic-acq
 """
@@ -36,6 +36,10 @@ def row(summ, holdout_tag):
 
 
 def dft_counts(df):
+    # verdicts from the current DFT table, not the copy frozen into the prediction file at training time
+    # (the held-out training excluded all 26 candidates, so the predictions do not depend on the verdicts)
+    v = pd.read_csv(OUT / "dft_verdicts.csv").set_index("candidate_id").verdict
+    df = df.assign(verdict=df.candidate_id.map(v))
     over = df[df.verdict == "overturned"]
     conf = df[df.verdict == "fm_confirmed"]
     return {"overturned_called_nonFM": int(over.y_pred.isin(["AFM", "FiM"]).sum()),

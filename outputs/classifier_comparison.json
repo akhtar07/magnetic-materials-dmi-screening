@@ -23,11 +23,11 @@
     "recall_FiM_sd": NaN,
     "recall_NM": 0.7573726541554959,
     "recall_NM_sd": NaN,
-    "dft_overturned_called_nonFM": 10,
+    "dft_overturned_called_nonFM": 9,
     "dft_overturned_called_AFM": 5,
-    "dft_n_overturned": 21,
+    "dft_n_overturned": 20,
     "dft_confirmed_called_FM": 2,
-    "dft_n_confirmed": 3
+    "dft_n_confirmed": 4
   },
   "LightGBM, MACE-MP-0 embedding": {
     "model": "LightGBM, MACE-MP-0 embedding",
@@ -53,11 +53,11 @@
     "recall_FiM_sd": NaN,
     "recall_NM": 0.8150134048257373,
     "recall_NM_sd": NaN,
-    "dft_overturned_called_nonFM": 13,
+    "dft_overturned_called_nonFM": 12,
     "dft_overturned_called_AFM": 11,
-    "dft_n_overturned": 21,
+    "dft_n_overturned": 20,
     "dft_confirmed_called_FM": 2,
-    "dft_n_confirmed": 3
+    "dft_n_confirmed": 4
   },
   "LightGBM, v2 + MACE-MP-0": {
     "model": "LightGBM, v2 + MACE-MP-0",
@@ -83,11 +83,11 @@
     "recall_FiM_sd": NaN,
     "recall_NM": 0.7949061662198391,
     "recall_NM_sd": NaN,
-    "dft_overturned_called_nonFM": 7,
+    "dft_overturned_called_nonFM": 6,
     "dft_overturned_called_AFM": 5,
-    "dft_n_overturned": 21,
+    "dft_n_overturned": 20,
     "dft_confirmed_called_FM": 2,
-    "dft_n_confirmed": 3
+    "dft_n_confirmed": 4
   },
   "CGCNN": {
     "model": "CGCNN",
@@ -114,9 +114,9 @@
     "recall_NM": 0.7989276139410189,
     "recall_NM_sd": 0.04504101237643821,
     "dft_overturned_called_nonFM": [
-      12,
-      10,
-      13
+      11,
+      9,
+      12
     ],
     "dft_overturned_called_AFM": [
       10,
@@ -124,9 +124,9 @@
       9
     ],
     "dft_n_overturned": [
-      21,
-      21,
-      21
+      20,
+      20,
+      20
     ],
     "dft_confirmed_called_FM": [
       0,
@@ -134,9 +134,9 @@
       1
     ],
     "dft_n_confirmed": [
-      3,
-      3,
-      3
+      4,
+      4,
+      4
     ]
   },
   "_magndata_test_counts": {
