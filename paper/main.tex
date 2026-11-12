@@ -210,7 +210,7 @@ antiparallel to Fe (Methods).
 CaLaTaFeO$_6$ (AFM 0.10~\meVat\ below FM) and Ba$_4$Ta$_{10}$FeO$_{30}$ (0.00~\meVat), both from tight pairs,
 which are evidence for neither ordering. No candidate remains unresolved: the one configuration never completed
 (the $1\times1\times2$ stacking of mp-682554) belongs to a candidate that another audited AFM cell already
-places 0.31~\meVat\ below FM. All verdicts are among collinear orderings; a noncollinear or incommensurate
+places 0.32~\meVat\ below FM at a converged $k$-mesh. All verdicts are among collinear orderings; a noncollinear or incommensurate
 ground state, which is exactly what a DMI host may adopt, is outside the enumeration, so ``consistent with the
 label'' means lowest among the collinear states tested.
 
@@ -233,8 +233,8 @@ antiparallel alignment~\cite{anderson1950,goodenough1955,kanamori1959}. A workfl
 relaxation ferromagnetically starts each of these compounds from the chemically less likely state, and MP's
 own magnetic-ordering study~\cite{horton2019} anticipates the result. What the batch measures is how large the
 effect is inside the population that DMI screening selects. The smallest losses need individual comment.
-FeCu$_4$Re$_{14}$(Mo$_3$S$_{20}$)$_2$ (mp-682554) has one Fe per 65-atom formula unit; its 0.31~\meVat\
-preference (20~meV per Fe) couples Fe sites at least 6.8~\AA\ apart through a metallic Re--Mo--S cluster
+FeCu$_4$Re$_{14}$(Mo$_3$S$_{20}$)$_2$ (mp-682554) has one Fe per 65-atom formula unit; its 0.32~\meVat\
+preference (21~meV per Fe, unchanged on a $k$-mesh 3-fold denser along each axis) couples Fe sites at least 6.8~\AA\ apart through a metallic Re--Mo--S cluster
 framework, so it is a long-range, presumably RKKY-like, coupling that a collinear GGA$+U$ calculation can
 describe only qualitatively. The tight pairs of Zn$_2$FeWO$_6$ and the two Ta$_2$FeO$_6$ entries
 ($-0.19$ to $-0.41$~\meVat) are within a factor of a few of the 0.10~\meVat\ window and are the verdicts most
@@ -727,7 +727,8 @@ degenerate class because its margin lies inside the 0.10~\meVat\ window, which w
 functional sensitivity discussed above rather than for numerical noise. Both of these pairs are insulating.
 In a metal the $k$-mesh is not a small perturbation: at MP's $k$-point density the tight pair of the metallic
 Tb$_6$FeBi$_2$ entry mp-22972 had the wrong sign, which a uniform $\sim$60~\AA\ $k$-length corrected (see
-``Exchange, symmetry and $k$-convergence of Tb$_6$FeBi$_2$''); the metallic mp-682554 margin was not $k$-tested.
+``Exchange, symmetry and $k$-convergence of Tb$_6$FeBi$_2$''), whereas the metallic mp-682554 margin moved
+by only 0.004~\meVat\ on a mesh 3-fold denser along each axis and kept its sign.
 
 Eight candidates contain tungsten. Three of them (Zn$_2$FeWO$_6$, Ba$_3$Fe$_2$WO$_9$ and Ca$_3$Fe$_2$(WO$_6$)$_2$)
 converged under MP's standard Hubbard correction on W (LDAUU$=6.2$~eV); the other five (mp-754090, mp-755203,
@@ -895,9 +896,12 @@ Tb moments ($\approx0.05\,\mu_B$ in mp-22972) antiparallel to Fe. Both entries a
 orderings of mp-22972, from its MP-recipe enumeration, lie 2.94 and 4.4~\meVat\ above FM. The mp-22972 AFM
 static was run in restarted one-hour segments; its moments were checked in every segment, and its FM--AFM
 difference is corroborated by the uninterrupted mp-1079285 pair. At the converged mesh the mp-1079285 margin
-implies $J_\perp\approx2.94$~meV, 5\% above the production value. The $k$-test covered only these two
-metallic pairs; the other metallic tight pair, mp-682554 ($-0.31$~\meVat, $3\times1\times2$ mesh, $k$-length
-20--28~\AA), was not re-tested at a denser mesh.
+implies $J_\perp\approx2.94$~meV, 5\% above the production value. The other metallic tight pair, mp-682554
+($3\times1\times2$ mesh, $k$-length 20--28~\AA), was recomputed in the same way at $9\times3\times6$ ($k$-length
+61--84~\AA; static single points on the tight relaxed structures, EDIFF$=10^{-6}$~eV, each started from the
+charge density of the production run). The energies are $-930.50887$ (FM) and $-930.55002$~eV (AFM) per
+130-atom cell, with Fe moments of $3.07$ and $\pm3.04\,\mu_B$ and total moments of 8.00 and $0.00\,\mu_B$; the
+margin moves from $-0.313$ to $-0.317$~\meVat\ (41.1~meV per cell), so this AFM verdict is $k$-converged.
 
 \subsection*{Exchange of mp-850225 and the unresolved spiral}
 
@@ -1343,7 +1347,8 @@ CGCNN & $63.3\pm3.2$ & $65.9\pm1.0$ & $63.6\pm6.3$ & $62.0\pm6.6$ & $58.0\pm2.3$
 $E^{\min}_{\rm non\text{-}FM}-E_{\rm FM}$ (\meVat) of the eight candidates whose MP-recipe non-FM verdict had
 $|$margin$|<2$~\meVat, before and after the tight same-cell pair, for the configuration in whose cell the pair
 was built. Every sign is kept at the production $k$-mesh. $^a$The metallic Tb$_6$FeBi$_2$ entry mp-22972
-reverses at a uniform $\sim$60~\AA\ $k$-length ($+1.16$, FM; Methods), and is therefore classed consistent. For Li$_4$NbFe(WO$_6$)$_2$ another, recipe-only configuration ($-0.54$) sets the
+reverses at a uniform $\sim$60~\AA\ $k$-length ($+1.16$, FM; Methods), and is therefore classed consistent. $^b$The metallic mp-682554 pair at a $9\times3\times6$ mesh ($k$-length
+61--84~\AA; Methods) keeps its sign. For Li$_4$NbFe(WO$_6$)$_2$ another, recipe-only configuration ($-0.54$) sets the
 final margin.}
 \label{tabS:tight}
 \begin{tabular}{llcc}
@@ -1356,7 +1361,7 @@ CrFe(BiO$_3$)$_2$ & mp-551086 & $-0.85$ & $-0.80$ \\
 FeBi(SeO$_3$)$_3$ & mp-1197024 & $-1.19$ & $-1.19$ \\
 CaFeReO$_6$ & mp-1343817 & $-1.77$ & $-1.88$ \\
 Tb$_6$FeBi$_2$ & mp-22972 & $-0.14$ & $-0.46$ ($+1.16$)$^a$ \\
-FeCu$_4$Re$_{14}$(Mo$_3$S$_{20}$)$_2$ & mp-682554 & $-0.29$ & $-0.31$ \\
+FeCu$_4$Re$_{14}$(Mo$_3$S$_{20}$)$_2$ & mp-682554 & $-0.29$ & $-0.31$ ($-0.32$)$^b$ \\
 Li$_4$NbFe(WO$_6$)$_2$ & mp-755203 & $-0.73$ & $-0.47$ \\
 \bottomrule
 \end{tabular}

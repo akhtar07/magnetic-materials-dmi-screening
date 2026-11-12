@@ -327,3 +327,14 @@ used).
 - 2026-11-11: intro now counts four FM-Fe-sublattice candidates (three compounds; the two Tb6FeBi2 entries are one).
   Classifier hold-out table recounted against the current verdicts (predictions unchanged; compare_models.py now reads
   outputs/dft_verdicts.csv): 9/20, 12/20, 6/20, CGCNN 9-12/20 non-FM; 2/4, 2/4, 2/4, 0-1/4 FM; base-rate ratio 1.5-2.7.
+
+## 2026-11-12 — mp-682554 k-convergence result
+
+- Static single points on the tight CONTCARs at 9x3x6 (k-length 61-84 A; production 3x1x2, 20-28 A), EDIFF 1e-6,
+  same functional/U/cutoff/mixer. Staged by src/dft/stage_k682.py, run by src/dft/k682.sh (terai 120367, 2x5 nodes).
+  - KPAR 8-10 OOM-killed at setup on 180 GB nodes (job 119030); KPAR 2 + NCORE 4 fits (~1.5 GB/rank).
+  - Each run started (ICHARG 1) from the CHGCAR of a short ISTART 1 / ICHARG 0 run on the production WAVECAR.
+- FM -930.50887481 eV (Fe 3.07 muB, total 8.00, final rms(c) 0.0064);
+  AFM(3_afm) -930.55002089 eV (Fe +-3.04 muB, total 0.00, rms(c) 0.0052).
+- Margin **-0.317 meV/atom** (41.1 meV/cell, 21 meV per Fe) vs -0.313 at production: AFM holds, verdict k-converged.
+  Counts unchanged (17/3/4/2). K_CONVERGED entry added; Methods, noise paragraph and Table S-tight (footnote b) updated.

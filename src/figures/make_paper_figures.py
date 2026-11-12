@@ -53,10 +53,12 @@ NET_KEPT_FIM = {"mp-775194", "mp-769471", "mp-850225"}  # mp-850225: Fe FM, W5+ 
 FIM_LABEL_CONSISTENT = {"mp-551086"}
 # Tb6FeBi2 statics at a uniform ~60 A k-length (15x8x5 and 4x15x8) on the tight-pair CONTCARs, revision 2026-11
 # (data/dft_staging_revision/tb_k3*): E_AFM - E_FM per atom. The tight pair of mp-22972 3_afm used 6x2x1 (one
-# k-point along 14.5 A) and gave -0.46; at k3 both Tb6FeBi2 entries are FM.
+# k-point along 14.5 A) and gave -0.46; at k3 both Tb6FeBi2 entries are FM. The metallic mp-682554 tight pair
+# (130 atoms, 3x1x2) was recomputed the same way at 9x3x6 (data/dft_staging_revision/k682): AFM stays below FM.
 K_CONVERGED = {
     ("mp-22972", "3_afm"): (-94.427430 + 94.448272) / 18 * 1e3,  # +1.158
     ("mp-1079285", "2a"): (-94.432671 + 94.456329) / 18 * 1e3,  # +1.314
+    ("mp-682554", "3_afm"): (-930.55002089 + 930.50887481) / 130 * 1e3,  # -0.317 (tight 3x1x2: -0.313)
 }
 OUTCOMES = {  # key: (label, colour)
     "lost": ("Net moment lost (AFM)", ns.OVERTURNED),
@@ -125,7 +127,7 @@ def dft_verdicts() -> pd.DataFrame:
         for _, r in tt[~tt.pair.isin(non.calc)].iterrows():
             margins[r.pair] = -float(r.gap_fm_minus_afm_meV_per_atom)
             protocols[r.pair] = "tight" if r.status == "ok" else "tight (provisional)"
-        # k-converged statics on the tight CONTCARs replace the tight-pair number (Tb6FeBi2 only)
+        # k-converged statics on the tight CONTCARs replace the tight-pair number (Tb6FeBi2 and mp-682554)
         for (c0, pair), m in K_CONVERGED.items():
             if c0 == cid:
                 margins[pair], protocols[pair] = m, "tight"
