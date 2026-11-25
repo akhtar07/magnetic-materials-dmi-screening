@@ -1,0 +1,20 @@
+units metal
+atom_style spin
+boundary p p f
+atom_modify map array
+read_data ../../fm.data
+pair_style hybrid/overlay lj/cut 7.007710 spin/exchange 7.007710 spin/dmi 7.007710
+pair_coeff * * lj/cut 0.0 1.0
+pair_coeff * * spin/exchange exchange 7.007710 0.00189202569392 0 5.2733445388
+pair_coeff * * spin/dmi dmi 7.007710 0.000155 0.0 0.0 1.0
+compute eEX all pair spin/exchange
+compute eDMI all pair spin/dmi
+compute sz all property/atom spz
+compute msz all reduce ave c_sz
+variable Mz equal c_msz
+fix f1 all precession/spin zeeman 0.014687509397448844 0.0 0.0 1.0 anisotropy 3.809572749963295e-06 0.0 0.0 1.0
+fix_modify f1 energy yes
+fix f3 all nve/spin lattice frozen
+thermo_style custom step pe c_eEX c_eDMI f_f1 v_Mz
+thermo_modify format float %.12f
+run 0

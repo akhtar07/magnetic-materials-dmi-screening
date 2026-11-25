@@ -1,0 +1,38 @@
+{
+ "ref_J(a),J(sqrt2 a) meV": [
+  14.99999971228038,
+  -1.5000000029295062
+ ],
+ "ref_eEX_per_spin_meV": -26.999999418842503,
+ "ref_expected_bonds_once_meV": -27.0,
+ "zeeman_per_spin_meV_per_(sp*muB*T)": 2.00021705340838,
+ "aniso_per_spin_meV_at_K=1meV": -1.0,
+ "mp-754090": {
+  "alpha": 0.0018920256939166662,
+  "gamma": 0.0,
+  "delta": 5.273344538845035,
+  "rc": 7.007710321414169,
+  "J_at_a_meV": 2.78,
+  "J_at_sqrt3a_meV": 1.2564833233060753,
+  "eEX_per_spin_meV": -8.340000000023913,
+  "expected_meV": -8.34,
+  "J_at_r_bulk_meV": [
+   2.78,
+   2.78
+  ],
+  "eDMI_helicity_0_meV_at_D=0.155meV": -31.193385914,
+  "eDMI_helicity_pi_meV_at_D=0.155meV": 31.193385914
+ },
+ "mp-850225": {
+  "alpha": 0.012504096410911608,
+  "gamma": 0.0,
+  "delta": 8.772,
+  "rc": 11.982774841997095,
+  "J_at_a_meV": 18.4,
+  "J_at_sqrt3a_meV": 7.470507634661022,
+  "eEX_per_spin_meV": -55.19999999995544,
+  "expected_meV": -55.199999999999996,
+  "eDMI_helicity_0_meV_at_D=0.1meV": -20.124765105999998,
+  "eDMI_helicity_pi_meV_at_D=0.1meV": 20.124765105999998
+ }
+}

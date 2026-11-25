@@ -1,0 +1,9 @@
+# Spin snapshots and lattice data files are large (runs/ is ~3 GB) and regenerable:
+# `python skyrmion_film.py build <material>` rewrites the .data files, run_scan.py the dumps.
+*.dump
+*.data
+log.lammps
+energy_avg.dat
+# local-only scratch folders from the first feasibility runs
+runs/*/B1.5_K*/
+runs/*/FM_*/

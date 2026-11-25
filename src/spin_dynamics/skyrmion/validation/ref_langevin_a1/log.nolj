@@ -1,0 +1,118 @@
+LAMMPS (10 Dec 2025 - Development - patch_10Dec2025-120-ga51f9ba0e7)
+OMP_NUM_THREADS environment is not set. Defaulting to 1 thread.
+  using 1 OpenMP thread(s) per MPI task
+variable dc equal 8.5 #LJ cutoff angstrom
+variable ep equal 0.44 #LJ epsilon eV
+variable sg equal 2.4 #LJ sigma angstrom
+variable rc equal 3.7 #Exchange cutoff angstrom
+variable alp equal 0.03862814 #eV
+variable gam equal 0.26627693 #adim
+variable del equal 1.70359890 #angstrom
+variable mc equal 3.0 #DMI cutoff angstrom
+
+units metal
+atom_style spin
+boundary p p f
+atom_modify map array
+timestep 0.0005
+
+read_data seed.data
+Reading data file ...
+  orthogonal box = (0 0 0) to (254.55844 254.55844 20)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  10000 atoms
+  read_data CPU = 0.063 seconds
+
+# ---------- Interactions ----------
+pair_style hybrid/overlay spin/exchange ${rc} spin/dmi ${mc}
+pair_style hybrid/overlay spin/exchange 3.7 spin/dmi ${mc}
+pair_style hybrid/overlay spin/exchange 3.7 spin/dmi 3
+pair_coeff 1 1 spin/exchange exchange ${rc} ${alp} ${gam} ${del}
+pair_coeff 1 1 spin/exchange exchange 3.7 ${alp} ${gam} ${del}
+pair_coeff 1 1 spin/exchange exchange 3.7 0.03862814 ${gam} ${del}
+pair_coeff 1 1 spin/exchange exchange 3.7 0.03862814 0.26627693 ${del}
+pair_coeff 1 1 spin/exchange exchange 3.7 0.03862814 0.26627693 1.7035989
+pair_coeff 1 1 spin/dmi dmi ${mc} 0.0035 0.0 0.0 1.0
+pair_coeff 1 1 spin/dmi dmi 3 0.0035 0.0 0.0 1.0
+
+# ---------- Computes for Magnetization & Energy ----------
+# Global magnetic properties (Total Magnetization X, Y, Z, Norm, Energy, Spin Temp)
+compute m_global all spin
+
+# Per-atom spin components (spx, spy, spz) and magnitude (sp)
+compute outsp all property/atom spx spy spz sp
+
+# Variables for normalized individual atomic spin components (s_nx, s_ny, s_nz)
+variable snx atom c_outsp[1]/c_outsp[4]
+variable sny atom c_outsp[2]/c_outsp[4]
+variable snz atom c_outsp[3]/c_outsp[4]
+
+# Variables for global total magnetization components and normalized total magnetization
+variable M_x equal c_m_global[1]
+variable M_y equal c_m_global[2]
+variable M_z equal c_m_global[3]
+variable M_norm equal c_m_global[4]
+
+compute eEX all pair spin/exchange
+compute eDMI all pair spin/dmi
+
+# ---------- Dumps and Outputs ----------
+# Single continuous dump file for all steps
+dump d1 all custom 5000 FeSkyrmion.dump id type x y z c_outsp[1] c_outsp[2] c_outsp[3] c_outsp[4] v_snx v_sny v_snz
+dump_modify d1 sort id
+
+# Creates a separate restart file every 100,000 steps (1 lakh steps)
+
+
+thermo 500
+variable PE equal pe
+fix favg all ave/time 10 5 50 v_PE file energy_avg.dat format "%20.10f"
+
+# Print global thermodynamics including Total Magnetization components
+
+# ---------- Spin Dynamics ----------
+fix f1 all precession/spin zeeman 1.6 0.0 0.0 1.0 anisotropy 0.0001 0.0 0.0 1.0
+fix f2 all langevin/spin 0.00001 0.05 123456
+fix f3 all nve/spin lattice frozen
+
+run 200
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Your simulation uses code contributions which should be cited:
+
+- fix nve/spin command: https://doi.org/10.1016/j.jcp.2018.06.042
+
+@article{tranchida2018massively,
+title={Massively Parallel Symplectic Algorithm for Coupled Magnetic Spin    Dynamics and Molecular Dynamics},
+author={Tranchida, J and Plimpton, S J and Thibaudeau, P and Thompson, A P},
+journal={Journal of Computational Physics},
+volume={372},
+pages={406--425},
+year={2018},
+publisher={Elsevier}
+doi={10.1016/j.jcp.2018.06.042}
+}
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Generated 0 of 0 mixed pair_coeff terms from geometric mixing rule
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.7
+  ghost atom cutoff = 5.7
+  binsize = 2.85, bins = 90 90 8
+  2 neighbor lists, perpetual/occasional/extra = 2 0 0
+  (1) pair spin/exchange, perpetual
+      attributes: full, newton on, cut 5.7
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+  (2) pair spin/dmi, perpetual, copy from (1)
+      attributes: full, newton on
+      pair build: copy
+      stencil: none
+      bin: none
+Per MPI 

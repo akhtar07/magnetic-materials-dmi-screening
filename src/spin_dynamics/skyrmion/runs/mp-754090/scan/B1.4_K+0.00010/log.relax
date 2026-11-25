@@ -1,0 +1,153 @@
+LAMMPS (10 Dec 2025 - Development - patch_10Dec2025-120-ga51f9ba0e7)
+OMP_NUM_THREADS environment is not set. Defaulting to 1 thread.
+  using 1 OpenMP thread(s) per MPI task
+# mp-754090: relax an isolated skyrmion at B = 0.012851571 T, K = 1.2698576e-06 eV
+# (reference point B = 1.4 T, K = 0.0001 eV; h = 0.23815, kappa = 0.04898)
+units metal
+atom_style spin
+boundary p p f
+atom_modify map array
+timestep 0.0394
+read_data ../../seed.data
+Reading data file ...
+  orthogonal box = (0 0 0) to (1841.67 1839.2821 20)
+  6 by 4 by 1 MPI processor grid
+  reading atoms ...
+  148626 atoms
+  read_data CPU = 1.085 seconds
+pair_style hybrid/overlay lj/cut 7.007710 spin/exchange 7.007710 spin/dmi 7.007710
+pair_coeff * * lj/cut 0.0 1.0
+pair_coeff * * spin/exchange exchange 7.007710 0.00189202569392 0 5.2733445388
+pair_coeff * * spin/dmi dmi 7.007710 0.000155 0.0 0.0 1.0
+compute eEX all pair spin/exchange
+compute eDMI all pair spin/dmi
+compute outsp all property/atom spx spy spz sp
+compute sz all property/atom spz
+compute msz all reduce ave c_sz
+variable Mz equal c_msz
+fix f1 all precession/spin zeeman 0.01285157072 0.0 0.0 1.0 anisotropy 1.269857583e-06 0.0 0.0 1.0
+fix_modify f1 energy yes
+thermo 1000
+thermo_style custom step pe c_eEX c_eDMI f_f1 v_Mz
+thermo_modify format float %.12f
+fix f2 all langevin/spin 0.00001 1.0 123456
+fix f3 all nve/spin lattice frozen
+dump d1 all custom 10000 traj.dump id type x y z c_outsp[1] c_outsp[2] c_outsp[3] c_outsp[4]
+run 40000
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Your simulation uses code contributions which should be cited:
+
+- fix nve/spin command: https://doi.org/10.1016/j.jcp.2018.06.042
+
+@article{tranchida2018massively,
+title={Massively Parallel Symplectic Algorithm for Coupled Magnetic Spin    Dynamics and Molecular Dynamics},
+author={Tranchida, J and Plimpton, S J and Thibaudeau, P and Thompson, A P},
+journal={Journal of Computational Physics},
+volume={372},
+pages={406--425},
+year={2018},
+publisher={Elsevier}
+doi={10.1016/j.jcp.2018.06.042}
+}
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Generated 0 of 0 mixed pair_coeff terms from geometric mixing rule
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 9.00771
+  ghost atom cutoff = 9.00771
+  binsize = 4.503855, bins = 409 409 5
+  3 neighbor lists, perpetual/occasional/extra = 3 0 0
+  (1) pair lj/cut, perpetual, half/full from (2)
+      attributes: half, newton on
+      pair build: halffull/newton
+      stencil: none
+      bin: none
+  (2) pair spin/exchange, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+  (3) pair spin/dmi, perpetual, copy from (2)
+      attributes: full, newton on
+      pair build: copy
+      stencil: none
+      bin: none
+Per MPI rank memory allocation (min/avg/max) = 6.663 | 6.666 | 6.67 Mbytes
+   Step         PotEng         c_eEX          c_eDMI          f_f1           v_Mz     
+         0  -1240.677051163197 -1239.449681596384 -0.237582473062 -0.989787093751 0.888994388240
+      1000  -1240.679419531764 -1239.455997284279 -0.233374869007 -0.990047378479 0.890351054335
+      2000  -1240.679679484148 -1239.458209019859 -0.230953907572 -0.990516556717 0.891278659787
+      3000  -1240.679743468756 -1239.458932277060 -0.229918799651 -0.990892392045 0.891777645730
+      4000  -1240.679760761693 -1239.459111747316 -0.229510863463 -0.991138150914 0.892039517570
+      5000  -1240.679767398632 -1239.459142036582 -0.229322680032 -0.991302682017 0.892197083341
+      6000  -1240.679769314249 -1239.459126172080 -0.229222978282 -0.991420163887 0.892302457388
+      7000  -1240.679770004849 -1239.459098332475 -0.229153739868 -0.991517932506 0.892387821563
+      8000  -1240.679770952774 -1239.459082838183 -0.229084050396 -0.991604064195 0.892464908436
+      9000  -1240.679771225591 -1239.459070360117 -0.229010445189 -0.991690420286 0.892543702924
+     10000  -1240.679771409816 -1239.459060700702 -0.228932333936 -0.991778375178 0.892623980263
+     11000  -1240.679771517179 -1239.459059832446 -0.228855767919 -0.991855916815 0.892696812448
+     12000  -1240.679771951042 -1239.459060084019 -0.228798457251 -0.991913409772 0.892750871533
+     13000  -1240.679771569445 -1239.459063284373 -0.228742871130 -0.991965413942 0.892800673967
+     14000  -1240.679772214283 -1239.459059039845 -0.228700864092 -0.992012310346 0.892843270875
+     15000  -1240.679772241452 -1239.459066780784 -0.228660073920 -0.992045386748 0.892876177891
+     16000  -1240.679772428568 -1239.459071287062 -0.228623780325 -0.992077361180 0.892907025608
+     17000  -1240.679772734178 -1239.459075834243 -0.228597925142 -0.992098974793 0.892928355491
+     18000  -1240.679772139924 -1239.459074208652 -0.228565831867 -0.992132099406 0.892959061760
+     19000  -1240.679772214242 -1239.459073172817 -0.228541219860 -0.992157821565 0.892982723887
+     20000  -1240.679771933319 -1239.459071502391 -0.228524517179 -0.992175913750 0.892999437716
+     21000  -1240.679772397253 -1239.459075315821 -0.228525837920 -0.992171243512 0.892995751135
+     22000  -1240.679772433769 -1239.459081555588 -0.228509113467 -0.992181764713 0.893007116151
+     23000  -1240.679772255254 -1239.459087205340 -0.228489254233 -0.992195795681 0.893021175662
+     24000  -1240.679772254958 -1239.459078484302 -0.228492154662 -0.992201615994 0.893024941039
+     25000  -1240.679771967076 -1239.459082771155 -0.228492346920 -0.992196849001 0.893021710840
+     26000  -1240.679772028467 -1239.459079800440 -0.228485804168 -0.992206423858 0.893029734033
+     27000  -1240.679772274699 -1239.459077240805 -0.228485476026 -0.992209557868 0.893032285133
+     28000  -1240.679772399675 -1239.459073052645 -0.228486560458 -0.992212786572 0.893034126190
+     29000  -1240.679772196240 -1239.459090192081 -0.228457471661 -0.992224532499 0.893049003816
+     30000  -1240.679771869774 -1239.459086387088 -0.228453530211 -0.992231952475 0.893055228440
+     31000  -1240.679772194570 -1239.459083382274 -0.228445864748 -0.992242947549 0.893065049981
+     32000  -1240.679772159738 -1239.459088087686 -0.228423555742 -0.992260516311 0.893082294689
+     33000  -1240.679772665089 -1239.459084128337 -0.228427333702 -0.992261203051 0.893082074032
+     34000  -1240.679772504649 -1239.459085231242 -0.228413060099 -0.992274213308 0.893094421048
+     35000  -1240.679771510166 -1239.459083249614 -0.228415510482 -0.992272750071 0.893093053305
+     36000  -1240.679771822831 -1239.459084385453 -0.228413442732 -0.992273994646 0.893094553082
+     37000  -1240.679771923551 -1239.459083076222 -0.228430773740 -0.992258073589 0.893079208315
+     38000  -1240.679772767243 -1239.459083464133 -0.228441703857 -0.992247599253 0.893069001873
+     39000  -1240.679772335775 -1239.459086065379 -0.228435950664 -0.992250319732 0.893072407781
+     40000  -1240.679772256499 -1239.459077364466 -0.228446450345 -0.992248441687 0.893068239530
+Loop time of 2374.59 on 24 procs for 40000 steps with 148626 atoms
+
+Performance: 57.343 ns/day, 0.419 hours/ns, 16.845 timesteps/s, 2.504 Matom-step/s
+99.3% CPU use with 24 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 260.18     | 291.86     | 316.03     |  72.0 | 12.29
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 115.69     | 140.14     | 170.16     | 102.2 |  5.90
+Output  | 0.23839    | 0.29347    | 0.3458     |   5.4 |  0.01
+Modify  | 1853.3     | 1861.8     | 1870.4     |   9.2 | 78.40
+Other   |            | 80.54      |            |       |  3.39
+
+Nlocal:        6192.75 ave        6240 max        6128 min
+Histogram: 4 0 0 0 8 4 0 0 0 8
+Nghost:         647.25 ave         730 max         564 min
+Histogram: 4 0 0 8 0 0 8 0 0 4
+Neighs:        37156.5 ave       37440 max       36768 min
+Histogram: 4 0 0 0 8 4 0 0 0 8
+FullNghs:        74313 ave       74880 max       73536 min
+Histogram: 4 0 0 0 8 4 0 0 0 8
+
+Total # of neighbors = 1783512
+Ave neighs/atom = 12
+Neighbor list builds = 0
+Dangerous builds = 0
+undump d1
+write_dump all custom final.dump id type x y z c_outsp[1] c_outsp[2] c_outsp[3] c_outsp[4] modify format float %.10f
+Total wall time: 0:39:35
